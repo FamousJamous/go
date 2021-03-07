@@ -27,11 +27,11 @@ func (history *History) AddMove(fromTo *FromTo, capturedPiece *Piece) {
   history.moves = append(history.moves, &Move{fromTo, captured})
 }
 
-func (history *History) GetLastMove() (*Move, error) {
+func (history *History) GetLastMove() *Move {
   if len(history.moves) == 0 {
-    return nil, &GameError{"No previous moves"}
+    return nil
   }
-  return history.moves[len(history.moves) - 1], nil
+  return history.moves[len(history.moves) - 1]
 }
 
 func (history *History) UndoMove(board* Board) error {

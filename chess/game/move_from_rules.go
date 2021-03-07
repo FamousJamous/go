@@ -62,16 +62,19 @@ func legalPawnMovesFrom(from *Coord, game *Game) []*Move {
   pawn := game.board.Get(from)
   moves := make([]*Move, 0, 3)
   // Forward 1
-  forward1 := getPawnForward(pawn, from, 1)
+  forward1 := getPawnForward(pawn.color, from, 1)
   moves = appendIfEmpty(from, forward1, game, moves)
   // Forward 2
   if game.board.Get(forward1) == nil && isPawnStart(from, pawn.color) {
-    moves = appendIfEmpty(from, getPawnForward(pawn, from, 2), game, moves)
+    moves = appendIfEmpty(
+      from, getPawnForward(pawn.color, from, 2), game, moves)
   }
   // Left capture
-  moves = appendIfCapture(from, getPawnDiagonal(pawn, from, -1), game, moves)
+  moves = appendIfCapture(
+      from, getPawnDiagonal(pawn.color, from, -1), game, moves)
   // Right capture
-  moves = appendIfCapture(from, getPawnDiagonal(pawn, from, 1), game, moves)
+  moves = appendIfCapture(
+      from, getPawnDiagonal(pawn.color, from, 1), game, moves)
   // En passant
   moves = appendIfEnPassant(from, game, moves)
   return moves
@@ -258,8 +261,8 @@ func appendIfEmptyOrCapture(from *Coord, to *Coord, game *Game, moves []*Move) [
 }
 
 func appendIfEnPassant(from *Coord, game *Game, moves []*Move) []*Move {
-  lastMove, ok := game.history.GetLastMove()
-  if ok != nil {
+  lastMove := game.history.GetLastMove()
+  if lastMove == nil {
     return moves
   }
   lastTo := lastMove.fromTo.to
@@ -271,7 +274,7 @@ func appendIfEnPassant(from *Coord, game *Game, moves []*Move) []*Move {
     return moves
   }
   pawn := game.board.Get(from)
-  to := &Coord{getPawnForwardRow(pawn, from, 1), lastTo.col}
+  to := &Coord{getPawnForwardRow(pawn.color, from, 1), lastTo.col}
   if game.board.Get(to) == nil {
     return append(moves, &Move{&FromTo{from, to}, &Captured{lastPiece, lastTo}})
   }
@@ -295,26 +298,19 @@ func appendIfCapture(
   return append(moves, &Move{&FromTo{from, to}, &Captured{captured, to}})
 }
 
-func getPawnDiagonal(pawn *Piece, from *Coord, colShift int) *Coord {
-  return &Coord{getPawnForwardRow(pawn, from, 1), from.col + colShift}
+func getPawnDiagonal(color Color, from *Coord, colShift int) *Coord {
+  return &Coord{getPawnForwardRow(color, from, 1), from.col + colShift}
 }
 
-func getPawnForward(pawn *Piece, from *Coord, numRows int) *Coord {
-  return &Coord{getPawnForwardRow(pawn, from, numRows), from.col};
+func getPawnForward(color Color, from *Coord, numRows int) *Coord {
+  return &Coord{getPawnForwardRow(color, from, numRows), from.col};
 }
 
-func getPawnForwardRow(pawn *Piece, from *Coord, numRows int) int {
-  if pawn.color == Black {
+func getPawnForwardRow(color Color, from *Coord, numRows int) int {
+  if color == Black {
     return from.row - numRows
   }
   return from.row + numRows
-}
-
-func abs(i int) int {
-  if i < 0 {
-    return -i
-  }
-  return i
 }
 
 func isPawnStart(coord *Coord, turn Color) bool {

@@ -16,12 +16,18 @@ func MakeCoordSet() *Set {
     })
 }
 
+func MakeFromToSet() *Set {
+  return MakeSet(func (element interface{}) string {
+      return fromToKey(element.(*FromTo))
+    })
+}
+
 func moveKey(move *Move) string {
   if move == nil {
     return "nil"
   }
   return strings.Join(
-      append(fromToStrts(move.fromTo), capturedStrs(move.captured)...), "|")
+      append(fromToStrs(move.fromTo), capturedStrs(move.captured)...), "|")
 }
 
 func coordKey(coord *Coord) string {
@@ -31,7 +37,14 @@ func coordKey(coord *Coord) string {
   return strings.Join(coordStrs(coord), "|")
 }
 
-func fromToStrts(fromTo *FromTo) []string {
+func fromToKey(fromTo *FromTo) string {
+  if fromTo == nil {
+    return "nil"
+  }
+  return strings.Join(fromToStrs(fromTo), "|")
+}
+
+func fromToStrs(fromTo *FromTo) []string {
   if fromTo == nil {
     return []string{"nil"}
   }

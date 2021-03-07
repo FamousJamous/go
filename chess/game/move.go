@@ -7,6 +7,12 @@ type FromTo struct {
   to *Coord
 }
 
+func (fromTo *FromTo) Diff() (int, int) {
+  from := fromTo.from
+  to := fromTo.to
+  return abs(to.row - from.row), abs(to.col - from.col)
+}
+
 func (fromTo *FromTo) InRange() bool {
   return fromTo.from.InRange() && fromTo.to.InRange()
 }
