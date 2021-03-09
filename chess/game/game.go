@@ -19,23 +19,24 @@ func MakeGame() *Game {
   return &Game{White, MakeBoard(), MakeHistory()}
 }
 
-func (game *Game) MakeMove(fromTo *FromTo) error {
-  if ok := CheckLegal(fromTo, game); ok != nil {
-    return ok
+func (game *Game) MakeMove(move *FromTo) error {
+  _, ok := InterpretMove(move, game)
+  if !ok {
+    return &GameError{fmt.Sprintf("Illegal move %v", move)}
   }
   // Handle en passant
-  capturedPiece := game.board.Get(fromTo.to)
-  if ok := game.board.MovePiece(fromTo); ok != nil {
+  capturedPiece := game.board.Get(move.to)
+  if ok := game.board.MovePiece(move); ok != nil {
     // Should've been validated already
     panic(ok.Error())
   }
-  if isCastle(fromTo, game.board) {
-    if ok := game.board.MovePiece(getRookCastleMove(fromTo)); ok != nil {
+  if isCastle(move, game.board) {
+    if ok := game.board.MovePiece(getRookCastleMove(move)); ok != nil {
       // Should've been validated already
       panic(ok.Error())
     }
   }
-  game.history.AddMove(fromTo, capturedPiece)
+  game.history.AddMove(move, capturedPiece)
   return game.switchTurns()
 }
 
@@ -46,12 +47,12 @@ func (game *Game) UndoMove() error {
   return game.switchTurns()
 }
 
+func (game *Game) getNextTurn() Color {
+  return game.turn.Other()
+}
+
 func (game *Game) switchTurns() error {
-  if game.turn == White {
-    game.turn = Black
-  } else {
-    game.turn = White
-  }
+  game.turn = game.turn.Other()
   return nil
 }
 
