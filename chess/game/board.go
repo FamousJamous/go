@@ -37,13 +37,13 @@ func (board *Board) Set(coord *Coord, piece *Piece) {
   board[coord.row][coord.col] = piece
 }
 
-func (board *Board) MovePiece(fromTo *FromTo) error {
-  from := board.Get(fromTo.from)
+func (board *Board) MovePiece(move *Move) error {
+  from := board.Get(move.from)
   if from == nil {
-    return &GameError{fmt.Sprint("No piece at ", fromTo.from)}
+    return &GameError{fmt.Sprint("No piece at ", move.from)}
   }
-  board.Set(fromTo.to, from)
-  board.Set(fromTo.from, nil)
+  board.Set(move.to, from)
+  board.Set(move.from, nil)
   return nil
 }
 

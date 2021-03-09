@@ -4,16 +4,6 @@ import (
   "reflect"
 )
 
-func CheckLegal(fromTo *FromTo, game *Game) error {
-  moves := LegalMovesFrom(fromTo.from, game)
-  for _, move := range moves {
-    if reflect.DeepEqual(move.fromTo, fromTo) {
-      return nil
-    }
-  }
-  return &GameError{"Illegal move"}
-}
-
 func LegalMovesFrom(from *Coord, game *Game) []*Move {
   piece := game.board.Get(from)
   if piece == nil || piece.color != game.turn {
@@ -29,7 +19,7 @@ func threatsForColor(color Color, game *Game) *Set {
       from := &Coord{row, col}
       if piece := game.board.Get(from); piece != nil && piece.color == color {
         for _, move := range simpleMovesForPiece(piece, from, game) {
-          threats.Insert(move.fromTo.to)
+          threats.Insert(move.to)
         }
       }
     }
@@ -171,12 +161,12 @@ func castleKingMovesFrom(from *Coord, game *Game) []*Move {
     if rangeIsEmptyAndHasNoThreats(row, 1, 4, game, threats) &&
         noMovesFrom(&Coord{row, 0}, game) {
       // Rook implied by 2 space king move
-      moves = append(moves, MakeMove(from, &Coord{row, 2}))
+      moves = append(moves, &Move{from, &Coord{row, 2}})
     }
     if rangeIsEmptyAndHasNoThreats(row, 5, 7, game, threats) &&
         noMovesFrom(&Coord{row, 7}, game) {
       // Rook implied by 2 space king move
-      moves = append(moves, MakeMove(from, &Coord{row, 6}))
+      moves = append(moves, &Move{from, &Coord{row, 6}})
     }
   }
   return moves
@@ -234,12 +224,12 @@ func appendMovesInRange(
     if captured != nil {
       // Capture
       if captured.color != piece.color {
-        moves = append(moves, &Move{&FromTo{from, to}, &Captured{captured, to}})
+        moves = append(moves, &Move{from, to})
       }
       // Ran into a piece
       break
     }
-    moves = append(moves, MakeMove(from, to))
+    moves = append(moves, &Move{from, to})
   }
   return moves
 }
@@ -248,14 +238,14 @@ func appendIfEmptyOrCapture(from *Coord, to *Coord, game *Game, moves []*Move) [
   if captured := game.board.Get(to); captured != nil {
     // Captured
     if game.board.Get(from).color != captured.color {
-      return append(moves, &Move{&FromTo{from, to}, &Captured{captured, to}})
+      return append(moves, &Move{from, to})
     }
     // Can't capture own piece
     return moves
   }
   if to.InRange() {
     // Move to empty space
-    return append(moves, MakeMove(from, to))
+    return append(moves, &Move{from, to})
   }
   return moves
 }
@@ -276,14 +266,14 @@ func appendIfEnPassant(from *Coord, game *Game, moves []*Move) []*Move {
   pawn := game.board.Get(from)
   to := &Coord{getPawnForwardRow(pawn.color, from, 1), lastTo.col}
   if game.board.Get(to) == nil {
-    return append(moves, &Move{&FromTo{from, to}, &Captured{lastPiece, lastTo}})
+    return append(moves, &Move{from, to})
   }
   return moves
 }
 
 func appendIfEmpty(from *Coord, to *Coord, game *Game, moves []*Move) []*Move {
   if game.board.Get(to) == nil {
-    return append(moves, MakeMove(from, to))
+    return append(moves, &Move{from, to})
   }
   return moves
 }
@@ -295,7 +285,7 @@ func appendIfCapture(
   if captured == nil || captured.color == piece.color {
     return moves
   }
-  return append(moves, &Move{&FromTo{from, to}, &Captured{captured, to}})
+  return append(moves, &Move{from, to})
 }
 
 func getPawnDiagonal(color Color, from *Coord, colShift int) *Coord {
@@ -320,19 +310,19 @@ func isPawnStart(coord *Coord, turn Color) bool {
   return coord.row == 1
 }
 
-// Assumes fromTo is legal
-func isCastle(fromTo *FromTo, board *Board) bool {
-  piece := board.Get(fromTo.to)
+// Assumes move is legal
+func isCastle(move *Move, board *Board) bool {
+  piece := board.Get(move.to)
   return piece != nil && piece.name == 'k' &&
-      abs(fromTo.from.col - fromTo.to.col) > 1
+      abs(move.from.col - move.to.col) > 1
 }
 
-// Assumes fromTo is a castle move
-func getRookCastleMove(fromTo *FromTo) *FromTo {
-  row := fromTo.from.row
-  if fromTo.to.col == 6 {
-    return &FromTo{&Coord{row, 7}, &Coord{row, 5}}
+// Assumes move is a castle move
+func getRookCastleMove(move *Move) *Move {
+  row := move.from.row
+  if move.to.col == 6 {
+    return &Move{&Coord{row, 7}, &Coord{row, 5}}
   } else {
-    return &FromTo{&Coord{row, 0}, &Coord{row, 3}}
+    return &Move{&Coord{row, 0}, &Coord{row, 3}}
   }
 }

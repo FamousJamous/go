@@ -2,34 +2,34 @@ package game
 
 import "reflect"
 
-func moveEvent(move *FromTo) (*Event, bool) {
-  return &Event{[]*FromTo{move}, nil, false}, true
+func moveEvent(move *Move) (*Event, bool) {
+  return &Event{[]*Move{move}, nil, false}, true
 }
 
-func captureEvent(move* FromTo, piece *Piece) (*Event, bool) {
-  return &Event{[]*FromTo{move}, &Captured{piece, move.to}, false}, true
+func captureEvent(move* Move, piece *Piece) (*Event, bool) {
+  return &Event{[]*Move{move}, &Captured{piece, move.to}, false}, true
 }
 
-func moveOrCaptureEvent(move* FromTo, piece *Piece) (*Event, bool) {
+func moveOrCaptureEvent(move* Move, piece *Piece) (*Event, bool) {
   if piece == nil {
     return moveEvent(move)
   }
   return captureEvent(move, piece)
 }
 
-func enPassantEvent(move *FromTo, piece *Piece, coord* Coord) (*Event, bool) {
-  return &Event{[]*FromTo{move}, &Captured{piece, coord}, false}, true
+func enPassantEvent(move *Move, piece *Piece, coord* Coord) (*Event, bool) {
+  return &Event{[]*Move{move}, &Captured{piece, coord}, false}, true
 }
 
-func castleEvent(kingMove *FromTo, rookMove *FromTo) (*Event, bool) {
-  return &Event{[]*FromTo{kingMove, rookMove}, nil, false}, true
+func castleEvent(kingMove *Move, rookMove *Move) (*Event, bool) {
+  return &Event{[]*Move{kingMove, rookMove}, nil, false}, true
 }
 
 func badEvent() (*Event, bool) {
   return nil, false
 }
 
-func InterpretMove(move *FromTo, game *Game) (*Event, bool) {
+func InterpretMove(move *Move, game *Game) (*Event, bool) {
   piece := game.board.Get(move.from)
   if piece == nil || piece.color != game.turn {
     return nil, false
@@ -45,7 +45,7 @@ func InterpretMove(move *FromTo, game *Game) (*Event, bool) {
 }
 
 // Doesn't check for castle or check or player turn.
-func interpretSimple(piece *Piece, move *FromTo, game *Game) (*Event, bool) {
+func interpretSimple(piece *Piece, move *Move, game *Game) (*Event, bool) {
   switch piece.name {
     case 'p': return interpretPawn(piece, move, game)
     case 'n': return interpretKnight(piece, move, game)
@@ -102,7 +102,7 @@ func findKings(game *Game) (*Coord, *Coord) {
   return king, otherKing
 }
 
-func interpretPawn(piece *Piece, move *FromTo, game *Game) (*Event, bool) {
+func interpretPawn(piece *Piece, move *Move, game *Game) (*Event, bool) {
   if !isPawnForward(move, game) {
     return badEvent()
   }
@@ -142,20 +142,20 @@ func interpretPawn(piece *Piece, move *FromTo, game *Game) (*Event, bool) {
   if lastEvent == nil {
     return badEvent()
   }
-  lastFromTo := lastEvent.moves[0]
-  lastPiece := game.board.Get(lastFromTo.to)
+  lastMove := lastEvent.moves[0]
+  lastPiece := game.board.Get(lastMove.to)
   if lastPiece.name != 'p' {
     return badEvent()
   }
-  toRowDiff, _ := lastFromTo.Diff()
-  if toRowDiff == 2 && lastFromTo.to.row == move.from.row &&
-      lastFromTo.to.col == move.to.col {
-    return enPassantEvent(move, lastPiece, lastFromTo.to)
+  toRowDiff, _ := lastMove.Diff()
+  if toRowDiff == 2 && lastMove.to.row == move.from.row &&
+      lastMove.to.col == move.to.col {
+    return enPassantEvent(move, lastPiece, lastMove.to)
   }
   return badEvent()
 }
 
-func interpretKnight(piece *Piece, move *FromTo, game *Game) (*Event, bool) {
+func interpretKnight(piece *Piece, move *Move, game *Game) (*Event, bool) {
   rowDiff, colDiff := move.Diff()
   if (rowDiff + colDiff) != 3 || abs(rowDiff - colDiff) != 1 {
     return badEvent()
@@ -170,7 +170,7 @@ func interpretKnight(piece *Piece, move *FromTo, game *Game) (*Event, bool) {
   return captureEvent(move, toPiece)
 }
 
-func interpretBishop(piece *Piece, move *FromTo, game *Game) (*Event, bool) {
+func interpretBishop(piece *Piece, move *Move, game *Game) (*Event, bool) {
   rowDiff, colDiff := move.Diff()
   if rowDiff != colDiff {
     return badEvent()
@@ -178,7 +178,7 @@ func interpretBishop(piece *Piece, move *FromTo, game *Game) (*Event, bool) {
   return interpretStraight(piece, move, game)
 }
 
-func interpretRook(piece *Piece, move *FromTo, game *Game) (*Event, bool) {
+func interpretRook(piece *Piece, move *Move, game *Game) (*Event, bool) {
   rowDiff, colDiff := move.Diff()
   if rowDiff != 0 && colDiff != 0 {
     return badEvent()
@@ -186,7 +186,7 @@ func interpretRook(piece *Piece, move *FromTo, game *Game) (*Event, bool) {
   return interpretStraight(piece, move, game)
 }
 
-func interpretQueen(piece *Piece, move *FromTo, game *Game) (*Event, bool) {
+func interpretQueen(piece *Piece, move *Move, game *Game) (*Event, bool) {
   rowDiff, colDiff := move.Diff()
   if rowDiff != colDiff && rowDiff != 0 && colDiff != 0 {
     return badEvent()
@@ -194,7 +194,7 @@ func interpretQueen(piece *Piece, move *FromTo, game *Game) (*Event, bool) {
   return interpretStraight(piece, move, game)
 }
 
-func interpretKing(piece *Piece, move *FromTo, game *Game) (*Event, bool) {
+func interpretKing(piece *Piece, move *Move, game *Game) (*Event, bool) {
   rowDiff, colDiff := move.Diff()
   if rowDiff > 1 || colDiff > 1 {
     return badEvent()
@@ -208,7 +208,7 @@ func interpretKing(piece *Piece, move *FromTo, game *Game) (*Event, bool) {
   return moveOrCaptureEvent(move, toPiece)
 }
 
-func interpretCastle(piece *Piece, move *FromTo, game *Game) (*Event, bool) {
+func interpretCastle(piece *Piece, move *Move, game *Game) (*Event, bool) {
   if move.from.col != 4 || (piece.color == Black && move.from.row != 7) ||
       (piece.color == White && move.from.row != 0) {
     return badEvent()
@@ -218,7 +218,7 @@ func interpretCastle(piece *Piece, move *FromTo, game *Game) (*Event, bool) {
     return badEvent()
   }
   rookMove := castleRookMove(move.to)
-  if !emptyBetween(MakeFromTo(move.from, rookMove.from), game) ||
+  if !emptyBetween(move.from, rookMove.from, game) ||
       hasMoved(move.from, game) || hasMoved(rookMove.from, game) ||
       hasThreatsBetween(move.from, rookMove.from, game) ||
       hasThreat(piece.color.Other(), move.from, game) {
@@ -236,33 +236,33 @@ func hasMoved(coord *Coord, game *Game) bool {
   return false
 }
 
-func castleRookMove(kingTo *Coord) *FromTo {
+func castleRookMove(kingTo *Coord) *Move {
   row := kingTo.row
   if kingTo.col == 2 {
-    return MakeFromTo(&Coord{row, 0}, &Coord{row, 3})
+    return &Move{&Coord{row, 0}, &Coord{row, 3}}
   }
   // kingTo.col == 6
-  return MakeFromTo(&Coord{row, 7}, &Coord{row, 5})
+  return &Move{&Coord{row, 7}, &Coord{row, 5}}
 }
 
-func interpretStraight(piece *Piece, move *FromTo, game *Game) (*Event, bool) {
+func interpretStraight(piece *Piece, move *Move, game *Game) (*Event, bool) {
   toPiece := game.board.Get(move.to)
   if toPiece != nil && toPiece.color == piece.color {
     return badEvent()
   }
-  if !emptyBetween(move, game) {
+  if !emptyBetween(move.from, move.to, game) {
     return badEvent()
   }
   return moveOrCaptureEvent(move, toPiece)
 }
 
 // Expects diagonal or straight line between
-func emptyBetween(move *FromTo, game *Game) bool {
-  incRow := getInc(move.from.row, move.to.row)
-  incCol := getInc(move.from.col, move.to.col)
-  row := move.from.row + incRow
-  col := move.from.col + incCol
-  for ; row != move.to.row || col != move.to.col; {
+func emptyBetween(from *Coord, to *Coord, game *Game) bool {
+  incRow := getInc(from.row, to.row)
+  incCol := getInc(from.col, to.col)
+  row := from.row + incRow
+  col := from.col + incCol
+  for ; row != to.row || col != to.col; {
     if game.board.Get(&Coord{row, col}) != nil {
       return false
     }
@@ -298,7 +298,7 @@ func hasThreat(color Color, to *Coord, game *Game) bool {
     for col := 0; col < 8; col++ {
       from := &Coord{row, col}
       if piece := game.board.Get(from); piece != nil && piece.color == color {
-        _, ok := interpretSimple(piece, &FromTo{from, to}, game)
+        _, ok := interpretSimple(piece, &Move{from, to}, game)
         if ok {
           return true
         }
@@ -317,7 +317,7 @@ func getInc(from int, to int) int {
   return 0
 }
 
-func isPawnForward(move *FromTo, game *Game) bool {
+func isPawnForward(move *Move, game *Game) bool {
   if game.board.Get(move.from).color == Black {
     return move.to.row < move.from.row
   }

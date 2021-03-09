@@ -4,30 +4,16 @@ import "fmt"
 import "strconv"
 import "strings"
 
-func MakeMoveSet() *Set {
-  return MakeSet(func (element interface{}) string {
-      return moveKey(element.(*Move))
-    })
-}
-
 func MakeCoordSet() *Set {
   return MakeSet(func (element interface{}) string {
       return coordKey(element.(*Coord))
     })
 }
 
-func MakeFromToSet() *Set {
+func MakeMoveSet() *Set {
   return MakeSet(func (element interface{}) string {
-      return fromToKey(element.(*FromTo))
+      return moveKey(element.(*Move))
     })
-}
-
-func moveKey(move *Move) string {
-  if move == nil {
-    return "nil"
-  }
-  return strings.Join(
-      append(fromToStrs(move.fromTo), capturedStrs(move.captured)...), "|")
 }
 
 func coordKey(coord *Coord) string {
@@ -37,18 +23,18 @@ func coordKey(coord *Coord) string {
   return strings.Join(coordStrs(coord), "|")
 }
 
-func fromToKey(fromTo *FromTo) string {
-  if fromTo == nil {
+func moveKey(move *Move) string {
+  if move == nil {
     return "nil"
   }
-  return strings.Join(fromToStrs(fromTo), "|")
+  return strings.Join(moveStrs(move), "|")
 }
 
-func fromToStrs(fromTo *FromTo) []string {
-  if fromTo == nil {
+func moveStrs(move *Move) []string {
+  if move == nil {
     return []string{"nil"}
   }
-  return append(coordStrs(fromTo.from), coordStrs(fromTo.to)...)
+  return append(coordStrs(move.from), coordStrs(move.to)...)
 }
 
 func coordStrs(coord *Coord) []string {

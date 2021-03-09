@@ -19,7 +19,7 @@ func MakeGame() *Game {
   return &Game{White, MakeBoard(), MakeHistory()}
 }
 
-func (game *Game) MakeMove(move *FromTo) error {
+func (game *Game) MakeMove(move *Move) error {
   event, ok := InterpretMove(move, game)
   if !ok {
     return &GameError{fmt.Sprintf("Illegal move %v", move)}
@@ -55,12 +55,8 @@ func ParseCoord(str string) *Coord {
   return &Coord{int(str[1] - '1'), int(str[0] - 'a')}
 }
 
-func ParseFromTo(str string) *FromTo {
-  return &FromTo{ParseCoord(str), ParseCoord(str[2:])}
-}
-
 func ParseMove(str string) *Move {
-  return &Move{ParseFromTo(str), nil}
+  return &Move{ParseCoord(str), ParseCoord(str[2:])}
 }
 
 type State int

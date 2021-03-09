@@ -1,5 +1,5 @@
 package game
 
 type Player interface {
-  GetMove() *FromTo
+  GetMove() *Move
 }
