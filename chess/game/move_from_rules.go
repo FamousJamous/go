@@ -209,8 +209,8 @@ func rangeIsEmptyAndHasNoThreats(
 }
 
 func noMovesFrom(from *Coord, game *Game) bool {
-  for _, move := range game.history.AllMoves() {
-    if reflect.DeepEqual(move.fromTo.from, from) {
+  for _, event := range game.history.AllEvents() {
+    if reflect.DeepEqual(event.moves[0].from, from) {
       return false
     }
   }
@@ -261,14 +261,14 @@ func appendIfEmptyOrCapture(from *Coord, to *Coord, game *Game, moves []*Move) [
 }
 
 func appendIfEnPassant(from *Coord, game *Game, moves []*Move) []*Move {
-  lastMove := game.history.GetLastMove()
-  if lastMove == nil {
+  lastEvent := game.history.GetLastEvent()
+  if lastEvent == nil {
     return moves
   }
-  lastTo := lastMove.fromTo.to
+  lastTo := lastEvent.moves[0].to
   lastPiece := game.board.Get(lastTo)
   if lastPiece.name != 'p' ||
-      !isPawnStart(lastMove.fromTo.from, lastPiece.color) ||
+      !isPawnStart(lastEvent.moves[0].from, lastPiece.color) ||
       lastTo.row != from.row ||
       abs(lastTo.col - from.col) != 1 {
     return moves

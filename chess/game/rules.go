@@ -2,12 +2,6 @@ package game
 
 import "reflect"
 
-type Event struct {
-  moves []*FromTo
-  captured *Captured
-  isCheck bool
-}
-
 func moveEvent(move *FromTo) (*Event, bool) {
   return &Event{[]*FromTo{move}, nil, false}, true
 }
@@ -66,21 +60,11 @@ func interpretSimple(piece *Piece, move *FromTo, game *Game) (*Event, bool) {
 // Assumes everything is ok before the check
 func checkForCheck(event *Event, game *Game) (*Event, bool) {
   // Make move
-  if event.captured != nil {
-    game.board.Set(event.captured.coord, nil)
-  }
-  for _, move := range event.moves {
-    game.board.MovePiece(move)
-  }
+  event.apply(game.board)
   // Check for checks
   kingInCheck, otherKingInCheck := identifyChecks(game)
   // Undo move
-  for _, move := range event.moves {
-    game.board.MovePiece(move.Reverse())
-  }
-  if event.captured != nil {
-    game.board.Set(event.captured.coord, event.captured.piece)
-  }
+  event.undo(game.board)
   // Handle checks
   if kingInCheck {
     return nil, false
@@ -154,11 +138,11 @@ func interpretPawn(piece *Piece, move *FromTo, game *Game) (*Event, bool) {
   if toPiece != nil {
     return badEvent()
   }
-  lastMove := game.history.GetLastMove()
-  if lastMove == nil {
+  lastEvent := game.history.GetLastEvent()
+  if lastEvent == nil {
     return badEvent()
   }
-  lastFromTo := lastMove.fromTo
+  lastFromTo := lastEvent.moves[0]
   lastPiece := game.board.Get(lastFromTo.to)
   if lastPiece.name != 'p' {
     return badEvent()
@@ -244,8 +228,8 @@ func interpretCastle(piece *Piece, move *FromTo, game *Game) (*Event, bool) {
 }
 
 func hasMoved(coord *Coord, game *Game) bool {
-  for _, move := range game.history.AllMoves() {
-    if reflect.DeepEqual(move.fromTo.from, coord) {
+  for _, event := range game.history.AllEvents() {
+    if reflect.DeepEqual(event.moves[0].from, coord) {
       return true
     }
   }

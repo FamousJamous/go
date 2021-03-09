@@ -20,23 +20,14 @@ func MakeGame() *Game {
 }
 
 func (game *Game) MakeMove(move *FromTo) error {
-  _, ok := InterpretMove(move, game)
+  event, ok := InterpretMove(move, game)
   if !ok {
     return &GameError{fmt.Sprintf("Illegal move %v", move)}
   }
   // Handle en passant
-  capturedPiece := game.board.Get(move.to)
-  if ok := game.board.MovePiece(move); ok != nil {
-    // Should've been validated already
-    panic(ok.Error())
-  }
-  if isCastle(move, game.board) {
-    if ok := game.board.MovePiece(getRookCastleMove(move)); ok != nil {
-      // Should've been validated already
-      panic(ok.Error())
-    }
-  }
-  game.history.AddMove(move, capturedPiece)
+  event.apply(game.board)
+  game.history.AddEvent(event)
+  // Switch turns
   return game.switchTurns()
 }
 
@@ -52,7 +43,7 @@ func (game *Game) getNextTurn() Color {
 }
 
 func (game *Game) switchTurns() error {
-  game.turn = game.turn.Other()
+  game.turn = game.getNextTurn()
   return nil
 }
 

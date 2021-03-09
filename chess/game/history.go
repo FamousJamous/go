@@ -3,68 +3,52 @@ package game
 import "strings"
 
 type History struct {
-  moves []*Move
+  events []*Event
 }
 
 func MakeHistory() *History {
-  return &History{make([]*Move, 0, 30)}
+  return &History{make([]*Event, 0, 30)}
 }
 
-func (history *History) AllMoves() []*Move {
-  return history.moves
+func (history *History) AllEvents() []*Event {
+  return history.events
 }
 
 func (history *History) IsEmpty() bool {
-  return len(history.moves) == 0
+  return len(history.events) == 0
 }
 
-func (history *History) AddMove(fromTo *FromTo, capturedPiece *Piece) {
-  var captured *Captured = nil
-  if capturedPiece != nil {
-    // Handle en passant
-    captured = &Captured{capturedPiece, fromTo.to}
-  }
-  history.moves = append(history.moves, &Move{fromTo, captured})
+func (history *History) AddEvent(event *Event) {
+  history.events = append(history.events, event)
 }
 
-func (history *History) GetLastMove() *Move {
-  if len(history.moves) == 0 {
+func (history *History) GetLastEvent() *Event {
+  if len(history.events) == 0 {
     return nil
   }
-  return history.moves[len(history.moves) - 1]
+  return history.events[len(history.events) - 1]
 }
 
 func (history *History) UndoMove(board* Board) error {
-  moves := history.moves
-  if len(moves) == 0 {
+  // Get last event
+  event := history.GetLastEvent()
+  if event == nil {
     return &GameError{"No previous moves"}
   }
-  last_index := len(moves) - 1
-  move := moves[last_index]
-  fromTo := move.fromTo
-  if isCastle(fromTo, board) {
-    if ok := board.MovePiece(getRookCastleMove(fromTo).Reverse());
-        ok != nil {
-      panic(ok.Error())
-    }
-  }
-  if ok := board.MovePiece(fromTo.Reverse()); ok != nil {
-    panic(ok.Error())
-  }
-  if captured := move.captured; captured != nil {
-    board.Set(captured.coord, captured.piece)
-  }
-  history.moves = moves[:last_index]
+  // Undo last event
+  event.undo(board)
+  // Remove last event
+  history.events = history.events[:len(history.events) - 1]
   return nil
 }
 
 func (history *History) String() string {
   builder := strings.Builder{}
-  for i := range history.moves {
+  for i := range history.events {
     if i != 0 {
       builder.WriteString(" ")
     }
-    builder.WriteString(history.moves[i].fromTo.String())
+    builder.WriteString(history.events[i].moves[0].String())
   }
   return builder.String()
 }
