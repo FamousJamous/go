@@ -7,7 +7,7 @@ import (
 func LegalMovesFrom(from *Coord, game *Game) []*Move {
   piece := game.board.Get(from)
   if piece == nil || piece.color != game.turn {
-    return make([]*Move, 0)
+    return []*Move{}
   }
   return legalMovesForPiece(piece, from, game)
 }
@@ -32,7 +32,17 @@ func legalMovesForPiece(piece *Piece, from *Coord, game *Game) []*Move {
   if piece.name == 'k' {
     moves = append(moves, castleKingMovesFrom(from, game)...)
   }
-  return moves
+  return filterChecks(moves, game)
+}
+
+func filterChecks(moves []*Move, game *Game) []*Move {
+  filtered := make([]*Move, 0, len(moves))
+  for _, move := range moves {
+    if _, ok := InterpretMove(move, game); ok {
+      filtered = append(filtered, move)
+    }
+  }
+  return filtered
 }
 
 // Omits castling
@@ -151,23 +161,17 @@ func simpleKingMovesFrom(from *Coord, game *Game) []*Move {
 }
 
 func castleKingMovesFrom(from *Coord, game *Game) []*Move {
+  piece := game.board.Get(from)
   moves := make([]*Move, 0, 2)
-  kingStart := getKingStart(from, game)
-  if reflect.DeepEqual(*from, *kingStart) && noMovesFrom(kingStart, game) {
-    // Check for threats between rook and king
-    row := from.row
-    threats := getOpponentThreats(game)
-    // Left
-    if rangeIsEmptyAndHasNoThreats(row, 1, 4, game, threats) &&
-        noMovesFrom(&Coord{row, 0}, game) {
-      // Rook implied by 2 space king move
-      moves = append(moves, &Move{from, &Coord{row, 2}})
-    }
-    if rangeIsEmptyAndHasNoThreats(row, 5, 7, game, threats) &&
-        noMovesFrom(&Coord{row, 7}, game) {
-      // Rook implied by 2 space king move
-      moves = append(moves, &Move{from, &Coord{row, 6}})
-    }
+  // Left 2
+  left := &Move{from, &Coord{from.row, from.col - 2}}
+  if _, ok := interpretCastle(piece, left, game); ok {
+    moves = append(moves, left)
+  }
+  // Right 2
+  right := &Move{from, &Coord{from.row, from.col + 2}}
+  if _, ok := interpretCastle(piece, right, game); ok {
+    moves = append(moves, right)
   }
   return moves
 }

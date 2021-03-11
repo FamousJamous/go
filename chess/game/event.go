@@ -8,7 +8,6 @@ import (
 type Event struct {
   moves []*Move
   captured *Captured
-  isCheck bool
 }
 
 func (event *Event) String() string {
@@ -23,9 +22,7 @@ func (event *Event) String() string {
     }
     builder.WriteString(move.String())
   }
-  builder.WriteString(
-      fmt.Sprintf(", captured: %v, isCheck: %v}", event.captured,
-                  event.isCheck))
+  builder.WriteString(fmt.Sprintf(", captured: %v}", event.captured))
   return builder.String()
 }
 

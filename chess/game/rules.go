@@ -1,13 +1,15 @@
 package game
 
-import "reflect"
+import (
+  "reflect"
+)
 
 func moveEvent(move *Move) (*Event, bool) {
-  return &Event{[]*Move{move}, nil, false}, true
+  return &Event{[]*Move{move}, nil}, true
 }
 
 func captureEvent(move* Move, piece *Piece) (*Event, bool) {
-  return &Event{[]*Move{move}, &Captured{piece, move.to}, false}, true
+  return &Event{[]*Move{move}, &Captured{piece, move.to}}, true
 }
 
 func moveOrCaptureEvent(move* Move, piece *Piece) (*Event, bool) {
@@ -18,11 +20,11 @@ func moveOrCaptureEvent(move* Move, piece *Piece) (*Event, bool) {
 }
 
 func enPassantEvent(move *Move, piece *Piece, coord* Coord) (*Event, bool) {
-  return &Event{[]*Move{move}, &Captured{piece, coord}, false}, true
+  return &Event{[]*Move{move}, &Captured{piece, coord}}, true
 }
 
 func castleEvent(kingMove *Move, rookMove *Move) (*Event, bool) {
-  return &Event{[]*Move{kingMove, rookMove}, nil, false}, true
+  return &Event{[]*Move{kingMove, rookMove}, nil}, true
 }
 
 func badEvent() (*Event, bool) {
@@ -32,7 +34,7 @@ func badEvent() (*Event, bool) {
 func InterpretMove(move *Move, game *Game) (*Event, bool) {
   piece := game.board.Get(move.from)
   if piece == nil || piece.color != game.turn {
-    return nil, false
+    return badEvent()
   }
   event, ok := interpretSimple(piece, move, game)
   if !ok && piece.name == 'k' {
@@ -62,14 +64,13 @@ func checkForCheck(event *Event, game *Game) (*Event, bool) {
   // Make move
   event.apply(game.board)
   // Check for checks
-  kingInCheck, otherKingInCheck := identifyChecks(game)
+  kingInCheck, _ := identifyChecks(game)
   // Undo move
   event.undo(game.board)
   // Handle checks
   if kingInCheck {
-    return nil, false
+    return badEvent()
   }
-  event.isCheck = otherKingInCheck
   return event, true
 }
 

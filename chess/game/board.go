@@ -101,3 +101,13 @@ func printRow(row int, board *Board, builder *strings.Builder) {
   }
   builder.WriteString(fmt.Sprintln(" ", row + 1))
 }
+
+func (board *Board) stringKey() string {
+  builder := &strings.Builder{}
+  for row := 0; row < 8; row++ {
+    for col := 0; col < 8; col++ {
+      builder.WriteString(board[row][col].String())
+    }
+  }
+  return builder.String()
+}
