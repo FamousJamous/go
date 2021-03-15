@@ -29,17 +29,17 @@ func (history *History) GetLastEvent() *Event {
   return history.events[len(history.events) - 1]
 }
 
-func (history *History) UndoMove(board* Board) error {
+func (history *History) UndoMove(board* Board) bool {
   // Get last event
   event := history.GetLastEvent()
   if event == nil {
-    return &GameError{"No previous moves"}
+    return false
   }
   // Undo last event
   event.undo(board)
   // Remove last event
   history.events = history.events[:len(history.events) - 1]
-  return nil
+  return true
 }
 
 func (history *History) String() string {

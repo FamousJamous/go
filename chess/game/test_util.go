@@ -4,14 +4,14 @@ import (
   "fmt"
   "reflect"
   "testing"
+  "unicode"
 )
 
 func makeMoves(game *Game, moves []string) {
   for _, strMove := range moves {
     move := ParseMove(strMove)
-    if ok := game.MakeMove(move); ok != nil {
-      fmt.Printf("%v\nmove: %v\n", game, move)
-      panic(fmt.Sprintf("game:\n%v\nerror: %v", game, ok.Error()))
+    if ok := game.MakeMove(move); !ok {
+      panic(fmt.Sprintf("game:\n%v\nfailed to make move: %v", game, move))
     }
   }
 }
@@ -31,6 +31,17 @@ func loadGame(boardStr string) *Game {
     }
   }
   return LoadGame(White, board, MakeHistory())
+}
+
+func byteToPiece(b byte) *Piece {
+  if b == ' ' {
+    return nil
+  }
+  name := byte(unicode.ToLower(rune(b)))
+  if unicode.IsUpper(rune(b)) {
+    return &Piece{name, Black}
+  }
+  return &Piece{name, White}
 }
 
 func checkState(t *testing.T, game *Game, want State) {

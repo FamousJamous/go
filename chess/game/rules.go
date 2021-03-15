@@ -76,31 +76,9 @@ func checkForCheck(event *Event, game *Game) (*Event, bool) {
 
 // Returns (current king in check, other king in check)
 func identifyChecks(game *Game) (bool, bool) {
-  king, otherKing := findKings(game)
+  king, otherKing := game.board.getKingPositions(game.turn)
   return hasThreat(game.getNextTurn(), king, game),
       hasThreat(game.turn, otherKing, game)
-}
-
-func findKings(game *Game) (*Coord, *Coord) {
-  var king *Coord
-  var otherKing *Coord
-  for row := 0; row < 8; row++ {
-    for col := 0; col < 8; col++ {
-      coord := &Coord{row, col}
-      if piece := game.board.Get(coord); piece != nil && piece.name == 'k' {
-        if piece.color == game.turn {
-          king = coord
-        } else {
-          otherKing = coord
-        }
-        if king != nil && otherKing != nil {
-          return king, otherKing
-        }
-      }
-    }
-  }
-  // Non-king games
-  return king, otherKing
 }
 
 func interpretPawn(piece *Piece, move *Move, game *Game) (*Event, bool) {
@@ -295,15 +273,9 @@ func hasThreat(color Color, to *Coord, game *Game) bool {
   if to == nil {
     return false
   }
-  for row := 0; row < 8; row++ {
-    for col := 0; col < 8; col++ {
-      from := &Coord{row, col}
-      if piece := game.board.Get(from); piece != nil && piece.color == color {
-        _, ok := interpretSimple(piece, &Move{from, to}, game)
-        if ok {
-          return true
-        }
-      }
+  for piece, from := range game.board.GetPieces(color) {
+    if _, ok := interpretSimple(piece, &Move{from, to}, game); ok {
+      return true
     }
   }
   return false

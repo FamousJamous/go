@@ -14,7 +14,7 @@ type Game struct {
 
 func LoadGame(turn Color, board *Board, history *History) *Game {
   game := &Game{turn, board, history, make(map[string]int)}
-  game.boardCounts[board.stringKey()]++
+  game.boardCounts[board.StringKey()]++
   // Create boardCounts
   events := game.history.events
   for i, n := 0, len(events); i < n; i++ {
@@ -28,29 +28,29 @@ func LoadGame(turn Color, board *Board, history *History) *Game {
 
 func MakeGame() *Game {
   game := &Game{White, MakeBoard(), MakeHistory(), make(map[string]int)}
-  game.boardCounts[game.board.stringKey()]++
+  game.boardCounts[game.board.StringKey()]++
   return game
 }
 
-func (game *Game) MakeMove(move *Move) error {
+func (game *Game) MakeMove(move *Move) bool {
   event, ok := InterpretMove(move, game)
   if !ok {
-    return &GameError{fmt.Sprintf("Illegal move %v", move)}
+    return false
   }
+  // Count board state
+  game.boardCounts[game.board.StringKey()]++
   // Handle en passant
   event.apply(game.board)
   game.history.AddEvent(event)
-  // Count board state
-  game.boardCounts[game.board.stringKey()]++
   // Switch turns
   return game.switchTurns()
 }
 
-func (game *Game) UndoMove() error {
-  if ok := game.history.UndoMove(game.board); ok != nil {
+func (game *Game) UndoMove() bool {
+  if ok := game.history.UndoMove(game.board); !ok {
     return ok
   }
-  game.boardCounts[game.board.stringKey()]--
+  game.boardCounts[game.board.StringKey()]--
   return game.switchTurns()
 }
 
@@ -58,9 +58,9 @@ func (game *Game) getNextTurn() Color {
   return game.turn.Other()
 }
 
-func (game *Game) switchTurns() error {
+func (game *Game) switchTurns() bool {
   game.turn = game.getNextTurn()
-  return nil
+  return true
 }
 
 func (game *Game) Turn() Color {
@@ -98,6 +98,15 @@ func (state State) String() string {
   panic(fmt.Sprintf("Unexpected state %d", state))
 }
 
+func (state State) IsNotOver() bool {
+  switch (state) {
+    case BlackWins: return false
+    case WhiteWins: return false
+    case Draw: return false
+  }
+  return true
+}
+
 func (game *Game) GetAllMoves() []*Move {
   moves := make([]*Move, 0, 64)
   for row := 0; row < 8; row++ {
@@ -112,7 +121,7 @@ func (game *Game) GetState() State {
   if insufficientMaterial(White, game) && insufficientMaterial(Black, game) {
     return Draw
   }
-  if game.boardCounts[game.board.stringKey()] > 2 {
+  if game.boardCounts[game.board.StringKey()] > 2 {
     return Draw
   }
   moves := game.GetAllMoves()
@@ -177,8 +186,12 @@ func (game *Game) String() string {
   builder := strings.Builder{}
   builder.WriteString(game.board.String())
   builder.WriteString(game.history.String())
-  builder.WriteString(fmt.Sprintf("\n%v's turn", game.turn))
+  builder.WriteByte('\n')
+  state := game.GetState()
+  if state == NotOver {
+    builder.WriteString(fmt.Sprintf("%v's turn", game.turn))
+  } else {
+    builder.WriteString(state.String())
+  }
   return builder.String()
 }
-
-

@@ -7,14 +7,39 @@ import (
 
 type Row [8]*Piece
 
-type Board [8]Row
+type Rows [8]Row
+
+type Board struct {
+  rows *Rows
+  whiteKingPos *Coord
+  blackKingPos *Coord
+  whitePieces map[*Piece]*Coord
+  blackPieces map[*Piece]*Coord
+}
 
 type BoardView interface {
   Get(coord *Coord) *Piece
+  StringKey() string
+  GetPieces(color Color) map[*Piece]*Coord
+}
+
+// Returns kingPos, otherKingPos, the first kingPos will match the given color
+func (board *Board) getKingPositions(color Color) (*Coord, *Coord) {
+  if color == Black {
+    return board.blackKingPos, board.whiteKingPos
+  }
+  return board.whiteKingPos, board.blackKingPos
+}
+
+func (board *Board) GetPieces(color Color) map[*Piece]*Coord {
+  if color == Black {
+    return board.blackPieces
+  }
+  return board.whitePieces
 }
 
 func MakeBoard() *Board {
-  board := &Board{}
+  board := EmptyBoard()
   initNonPawns(0, White, board)
   initPawns(1, White, board)
   initPawns(6, Black, board)
@@ -23,27 +48,53 @@ func MakeBoard() *Board {
 }
 
 func EmptyBoard() *Board {
-  return &Board{}
+  return &Board{
+    &Rows{}, nil, nil, make(map[*Piece]*Coord), make(map[*Piece]*Coord)}
 }
 
 func (board *Board) Get(coord *Coord) *Piece {
   if coord != nil && coord.InRange() {
-    return board[coord.row][coord.col]
+    return board.rows[coord.row][coord.col]
   }
   return nil
 }
 
 func (board *Board) Set(coord *Coord, piece *Piece) {
-  board[coord.row][coord.col] = piece
+  if !coord.InRange() {
+    panic(fmt.Sprintf("board:\n%v\ncoord out of range %v", board, coord))
+  }
+  // Assumes no one captures kings, and there's only one king per color.
+  if piece != nil && piece.name == 'k' {
+    if piece.color == Black {
+      board.blackKingPos = coord
+    } else {
+      board.whiteKingPos = coord
+    }
+  }
+  if existing := board.rows[coord.row][coord.col]; existing != nil {
+    if existing.color == Black {
+      delete(board.blackPieces, existing)
+    } else {
+      delete(board.whitePieces, existing)
+    }
+  }
+  if piece != nil {
+    if piece.color == Black {
+      board.blackPieces[piece] = coord
+    } else {
+      board.whitePieces[piece] = coord
+    }
+  }
+  board.rows[coord.row][coord.col] = piece
 }
 
 func (board *Board) MovePiece(move *Move) error {
-  from := board.Get(move.from)
-  if from == nil {
+  piece := board.Get(move.from)
+  if piece == nil {
     return &GameError{fmt.Sprint("No piece at ", move.from)}
   }
-  board.Set(move.to, from)
   board.Set(move.from, nil)
+  board.Set(move.to, piece)
   return nil
 }
 
@@ -62,19 +113,19 @@ func (board *Board) String() string {
 
 
 func initNonPawns(row int, color Color, board *Board) {
-  board[row][0] = &Piece{'r', color}
-  board[row][1] = &Piece{'n', color}
-  board[row][2] = &Piece{'b', color}
-  board[row][3] = &Piece{'q', color}
-  board[row][4] = &Piece{'k', color}
-  board[row][5] = &Piece{'b', color}
-  board[row][6] = &Piece{'n', color}
-  board[row][7] = &Piece{'r', color}
+  board.Set(&Coord{row, 0}, &Piece{'r', color})
+  board.Set(&Coord{row, 1}, &Piece{'n', color})
+  board.Set(&Coord{row, 2}, &Piece{'b', color})
+  board.Set(&Coord{row, 3}, &Piece{'q', color})
+  board.Set(&Coord{row, 4}, &Piece{'k', color})
+  board.Set(&Coord{row, 5}, &Piece{'b', color})
+  board.Set(&Coord{row, 6}, &Piece{'n', color})
+  board.Set(&Coord{row, 7}, &Piece{'r', color})
 }
 
 func initPawns(row int, color Color, board *Board) {
   for col := 0; col < 8; col++ {
-    board[row][col] = &Piece{'p', color}
+    board.Set(&Coord{row, col}, &Piece{'p', color})
   }
 }
 
@@ -97,16 +148,17 @@ func printCols(builder *strings.Builder) {
 func printRow(row int, board *Board, builder *strings.Builder) {
   builder.WriteString(fmt.Sprintf(" %v |", row + 1))
   for col := 0; col < 8; col++ {
-    builder.WriteString(fmt.Sprintf(" %v |", board[row][col]))
+    builder.WriteString(
+      fmt.Sprintf(" %v |", board.Get(&Coord{row, col}).String()))
   }
   builder.WriteString(fmt.Sprintln(" ", row + 1))
 }
 
-func (board *Board) stringKey() string {
+func (board *Board) StringKey() string {
   builder := &strings.Builder{}
   for row := 0; row < 8; row++ {
     for col := 0; col < 8; col++ {
-      builder.WriteString(board[row][col].String())
+      builder.WriteString(board.Get(&Coord{row, col}).String())
     }
   }
   return builder.String()

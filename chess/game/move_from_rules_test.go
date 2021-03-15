@@ -3,7 +3,6 @@ package game
 import (
   "reflect"
   "testing"
-  "unicode"
 )
 
 func checkLegalFailure(
@@ -322,17 +321,6 @@ func TestLegalMovesFrom_CheckKingSideCastle(t *testing.T) {
   want := []*Move{ParseMove("e1f1")}
   checkLegalMovesFrom(t, game, from, moves, want)
   checkInterpretMove(t, game, from, want)
-}
-
-func byteToPiece(b byte) *Piece {
-  if b == ' ' {
-    return nil
-  }
-  name := byte(unicode.ToLower(rune(b)))
-  if unicode.IsUpper(rune(b)) {
-    return &Piece{name, Black}
-  }
-  return &Piece{name, White}
 }
 
 func TestLegalMovesFrom_PawnBug(t *testing.T) {

@@ -189,3 +189,69 @@ func TestGetState_BlackInCheck(t *testing.T) {
 
   checkState(t, game, BlackInCheck)
 }
+
+func TestGetState_GameCrashed(t *testing.T) {
+  game := MakeGame()
+  makeMoves(
+      game,
+      []string{"b1c3", "a7a6", "c3d5", "a6a5", "a1b1", "a5a4", "b1a1", "a4a3",
+      "b2a3", "b7b6", "a1b1", "c7c6", "d5b6", "a8a7", "b6c8", "a7a8", "c8e7",
+      "d8e7", "e2e3", "c6c5", "c1b2", "e7e4", "b1a1", "e4f5", "a1b1", "f5g6",
+      "b1a1", "f7f6", "a1b1", "f6f5", "b1a1", "h7h6", "a1b1", "h6h5", "b1a1",
+      "h5h4", "a1b1", "h4h3", "g1h3", "c5c4", "b1a1", "c4c3", "d2c3", "g6h7",
+      "a1b1", "g7g6", "d1d4", "b8c6", "h3g5", "c6d4", "g5h7", "d4c2", "e1d2",
+      "c2e3", "h7f8", "e3f1", "b1f1", "e8f8", "f1e1", "f5f4", "e1e2", "g6g5",
+      "b2c1", "g5g4", "d2d3", "f4f3", "g2f3", "g4f3", "e2e3", "g8f6", "e3f3",
+      "a8a6", "d3c2", "a6b6", "c1d2", "b6a6", "c3c4", "a6b6", "c2c3", "b6a6",
+      "a3a4", "a6b6", "a2a3", "b6a6", "h1g1", "a6b6", "g1g2", "b6a6", "d2e3",
+      "a6c6", "h2h3", "h8h7", "g2g3", "h7h8", "c3b4", "h8h7", "e3d4", "c6a6",
+      "f3f4", "a6c6", "f2f3", "c6a6", "h3h4", "a6c6", "g3g4", "c6a6", "a4a5",
+      "a6c6", "a3a4", "c6a6", "b4b5", "a6c6", "c4c5", "h7h8", "d4e5", "f8e7",
+      "e5f6", "c6f6", "f4f6", "e7f6", "f3f4", "f6f5", "g4g5", "f5e4", "c5c6",
+      "d7d6", "g5g6", "d6d5", "f4f5", "e4e5", "h4h5", "d5d4", "a5a6", "d4d3",
+      "a4a5", "d3d2"})
+
+  game.GetState()
+}
+
+func BenchmarkGetState(b *testing.B) {
+  game := MakeGame()
+  b.ResetTimer()
+  for i := 0; i < b.N; i++ {
+    game.GetState()
+  }
+}
+
+func BenchmarkGetStateAfterSomeMoves(b *testing.B) {
+  game := loadGame(
+  // abcdefgh
+    "rnb k nr" + // 1
+    "pppp ppp" + // 2
+    "     q  " + // 3
+    "  b p   " + // 4
+    "    P   " + // 5
+    "  NP    " + // 6
+    "PPP  PPP" + // 7
+    "R BQKBNR")  // 8
+  b.ResetTimer()
+  for i := 0; i < b.N; i++ {
+    game.GetState()
+  }
+}
+
+func BenchmarkGetAllMoves(b *testing.B) {
+  game := loadGame(
+  // abcdefgh
+    "rnb k nr" + // 1
+    "pppp ppp" + // 2
+    "     q  " + // 3
+    "  b p   " + // 4
+    "    P   " + // 5
+    "  NP    " + // 6
+    "PPP  PPP" + // 7
+    "R BQKBNR")  // 8
+  b.ResetTimer()
+  for i := 0; i < b.N; i++ {
+    game.GetAllMoves()
+  }
+}
