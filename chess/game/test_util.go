@@ -7,7 +7,7 @@ import (
   "unicode"
 )
 
-func makeMoves(game *Game, moves []string) {
+func MakeMoves(game *Game, moves []string) {
   for _, strMove := range moves {
     move := ParseMove(strMove)
     if ok := game.MakeMove(move); !ok {
@@ -23,14 +23,18 @@ func checkPiece(t *testing.T, game *Game, coordStr string, want *Piece) {
   }
 }
 
-func loadGame(boardStr string) *Game {
+func loadBoard(boardStr string) *Board {
   board := EmptyBoard()
   for row := 0; row < 8; row++ {
     for col := 0; col < 8; col++ {
       board.Set(&Coord{row, col}, byteToPiece(boardStr[row * 8 + col]))
     }
   }
-  return LoadGame(White, board, MakeHistory())
+  return board
+}
+
+func loadGame(boardStr string) *Game {
+  return LoadGame(White, loadBoard(boardStr), MakeHistory())
 }
 
 func byteToPiece(b byte) *Piece {

@@ -8,6 +8,7 @@ import (
 type Event struct {
   moves []*Move
   captured *Captured
+  promoteTo *Piece
 }
 
 func (event *Event) String() string {
@@ -22,7 +23,10 @@ func (event *Event) String() string {
     }
     builder.WriteString(move.String())
   }
-  builder.WriteString(fmt.Sprintf(", captured: %v}", event.captured))
+  if event.captured != nil {
+    builder.WriteString(fmt.Sprintf(", captured: %v", event.captured))
+  }
+  builder.WriteByte('}')
   return builder.String()
 }
 
@@ -43,13 +47,17 @@ func (event *Event) apply(board *Board) {
     board.Set(event.captured.coord, nil)
   }
   for _, move := range event.moves {
-    board.MovePiece(move)
+    if !move.InRange() || !move.apply(board) {
+      panic(fmt.Sprintf("board:\n%v\nmove out of range: %v", board, move))
+    }
   }
 }
 
 func (event *Event) undo(board *Board) {
-  for _, move := range event.moves {
-    board.MovePiece(move.Reverse())
+  for i := len(event.moves) - 1; i >= 0; i-- {
+    if move := event.moves[i]; !move.undo(board) {
+      panic(fmt.Sprintf("board:\n%v\nmove out of range: %v", board, move))
+    }
   }
   if event.captured != nil {
     board.Set(event.captured.coord, event.captured.piece)

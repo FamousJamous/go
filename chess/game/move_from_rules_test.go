@@ -24,7 +24,7 @@ func checkEvent(
 
 func TestCheckLegal_NoPiece(t *testing.T) {
   game := MakeGame()
-  move := &Move{&Coord{2, 2}, &Coord{3, 3}}
+  move := MakeMove(&Coord{2, 2}, &Coord{3, 3})
 
   _, ok := InterpretMove(move, game)
 
@@ -44,7 +44,7 @@ func checkInterpretMove(
     for col := 0; col < 8; col++ {
       to := &Coord{row, col}
       if !legal_to_set.Contains(to) {
-        move := &Move{from, to}
+        move := MakeMove(from, to)
         _, ok := InterpretMove(move, game)
         if ok {
           t.Errorf("game:\n%v\nwant !ok; move ok: %v", game, move)
@@ -78,7 +78,7 @@ func TestLegalMovesFrom_PawnForward(t *testing.T) {
 
 func TestLegalMovesFrom_PawnCapture(t *testing.T) {
   game := MakeGame()
-  makeMoves(game, []string{"e2e4", "d7d5"})
+  MakeMoves(game, []string{"e2e4", "d7d5"})
   from := ParseCoord("e4")
 
   moves := LegalMovesFrom(from, game)
@@ -92,7 +92,7 @@ func TestLegalMovesFrom_PawnCapture(t *testing.T) {
 
 func TestLegalMovesFrom_EnPassantLegal(t *testing.T) {
   game := MakeGame()
-  makeMoves(game, []string{"e2e4", "d7d5", "e4e5", "f7f5"})
+  MakeMoves(game, []string{"e2e4", "d7d5", "e4e5", "f7f5"})
   from := ParseCoord("e5")
 
   moves := LegalMovesFrom(from, game)
@@ -105,15 +105,25 @@ func TestLegalMovesFrom_EnPassantLegal(t *testing.T) {
   checkEvent(
       t, game, enPassant, enPassantEvent,
       &Event{[]*Move{enPassant},
-             &Captured{&Piece{'p', Black}, ParseCoord("f5")}})
+             &Captured{&Piece{'p', Black}, ParseCoord("f5")}, nil})
 }
 
 func TestLegalMovesFrom_EnPassantHappened(t *testing.T) {
   game := MakeGame()
-  makeMoves(game, []string{"e2e4", "d7d5", "e4e5", "f7f5", "e5f6"})
+  MakeMoves(game, []string{"e2e4", "d7d5", "e4e5", "f7f5", "e5f6"})
 
   checkPiece(t, game, "f6", &Piece{'p', White})
-  checkPiece(t, game, "e6", nil)
+  checkPiece(t, game, "f5", nil)
+}
+
+func TestLegalMovesFrom_EnPassantUndo(t *testing.T) {
+  game := MakeGame()
+  MakeMoves(game, []string{"e2e4", "d7d5", "e4e5", "f7f5", "e5f6"})
+
+  game.UndoMove()
+
+  checkPiece(t, game, "e5", &Piece{'p', White})
+  checkPiece(t, game, "f5", &Piece{'p', Black})
 }
 
 func TestLegalMovesFrom_Knight(t *testing.T) {
@@ -131,7 +141,7 @@ func TestLegalMovesFrom_Knight(t *testing.T) {
 
 func TestLegalMovesFrom_KnightCapture(t *testing.T) {
   game := MakeGame()
-  makeMoves(game, []string{"b1c3", "d7d5"})
+  MakeMoves(game, []string{"b1c3", "d7d5"})
   from := ParseCoord("c3")
 
   moves := LegalMovesFrom(from, game)
@@ -146,7 +156,7 @@ func TestLegalMovesFrom_KnightCapture(t *testing.T) {
   checkEvent(
       t, game, capture, captureEvent,
       &Event{[]*Move{ParseMove("c3d5")},
-             &Captured{&Piece{'p', Black}, ParseCoord("d5")}})
+             &Captured{&Piece{'p', Black}, ParseCoord("d5")}, nil})
 }
 
 func TestLegalMovesFrom_BishopNoMoves(t *testing.T) {
@@ -162,7 +172,7 @@ func TestLegalMovesFrom_BishopNoMoves(t *testing.T) {
 
 func TestLegalMovesFrom_BishopCapture(t *testing.T) {
   game := MakeGame()
-  makeMoves(game, []string{"e2e4", "e7e5", "f1c4", "c7c5"})
+  MakeMoves(game, []string{"e2e4", "e7e5", "f1c4", "c7c5"})
   from := ParseCoord("c4")
 
   moves := LegalMovesFrom(from, game)
@@ -187,12 +197,12 @@ func TestLegalMovesFrom_BishopCapture(t *testing.T) {
   checkInterpretMove(t, game, from, want)
   checkEvent(t, game, capture, captureEvent,
              &Event{[]*Move{ParseMove("c4f7")},
-                    &Captured{&Piece{'p', Black}, ParseCoord("f7")}})
+                    &Captured{&Piece{'p', Black}, ParseCoord("f7")}, nil})
 }
 
 func TestLegalMovesFrom_Rook(t *testing.T) {
   game := MakeGame()
-  makeMoves(game, []string{"a2a4", "e7e5", "a1a3", "f8d6", "a3e3", "c7c5"})
+  MakeMoves(game, []string{"a2a4", "e7e5", "a1a3", "f8d6", "a3e3", "c7c5"})
   from := ParseCoord("e3")
 
   moves := LegalMovesFrom(from, game)
@@ -217,12 +227,12 @@ func TestLegalMovesFrom_Rook(t *testing.T) {
   checkInterpretMove(t, game, from, want)
   checkEvent(t, game, capture, captureEvent,
              &Event{[]*Move{ParseMove("e3e5")},
-                    &Captured{&Piece{'p', Black}, ParseCoord("e5")}})
+                    &Captured{&Piece{'p', Black}, ParseCoord("e5")}, nil})
 }
 
 func TestLegalMovesFrom_Queen(t *testing.T) {
   game := MakeGame()
-  makeMoves(game, []string{"e2e4", "e7e5", "d1g4", "e8e7"})
+  MakeMoves(game, []string{"e2e4", "e7e5", "d1g4", "e8e7"})
   from := ParseCoord("g4")
 
   moves := LegalMovesFrom(from, game)
@@ -258,15 +268,15 @@ func TestLegalMovesFrom_Queen(t *testing.T) {
   checkInterpretMove(t, game, from, want)
   checkEvent(t, game, capture1, captureEvent1,
              &Event{[]*Move{ParseMove("g4d7")},
-                    &Captured{&Piece{'p', Black}, ParseCoord("d7")}})
+                    &Captured{&Piece{'p', Black}, ParseCoord("d7")}, nil})
   checkEvent(t, game, capture2, captureEvent2,
              &Event{[]*Move{ParseMove("g4g7")},
-                    &Captured{&Piece{'p', Black}, ParseCoord("g7")}})
+                    &Captured{&Piece{'p', Black}, ParseCoord("g7")}, nil})
 }
 
 func TestLegalMovesFrom_KingSideCastle(t *testing.T) {
   game := MakeGame()
-  makeMoves(game, []string{"e2e4", "e7e5", "f1c4", "d7d5", "g1f3", "c7c5"})
+  MakeMoves(game, []string{"e2e4", "e7e5", "f1c4", "d7d5", "g1f3", "c7c5"})
   from := ParseCoord("e1")
 
   moves := LegalMovesFrom(from, game)
@@ -278,7 +288,7 @@ func TestLegalMovesFrom_KingSideCastle(t *testing.T) {
 
 func TestLegalMovesFrom_QueenSideCastle(t *testing.T) {
   game := MakeGame()
-  makeMoves(
+  MakeMoves(
     game,
     []string{"d2d4", "e7e5", "d1d3", "d7d5", "c1f4", "c7c5", "b1a3", "b7b5"})
   from := ParseCoord("e1")
@@ -292,7 +302,7 @@ func TestLegalMovesFrom_QueenSideCastle(t *testing.T) {
 
 func TestLegalMovesFrom_ThreatenKingSideCastle(t *testing.T) {
   game := MakeGame()
-  makeMoves(game, []string{"e2e4", "g8f6", "f1c4", "f6g4", "g1f3", "g4e3"})
+  MakeMoves(game, []string{"e2e4", "g8f6", "f1c4", "f6g4", "g1f3", "g4e3"})
   from := ParseCoord("e1")
 
   moves := LegalMovesFrom(from, game)
@@ -346,7 +356,7 @@ func TestLegalMovesFrom_PawnBug(t *testing.T) {
   checkInterpretMove(t, game, from, want)
   checkEvent(t, game, capture, captureEvent,
              &Event{[]*Move{ParseMove("d3c2")},
-                    &Captured{&Piece{'p', White}, ParseCoord("c2")}})
+                    &Captured{&Piece{'p', White}, ParseCoord("c2")}, nil})
 }
 
 func TestLegalMovesFrom_CantMoveIntoCheck(t *testing.T) {
@@ -360,21 +370,68 @@ func TestLegalMovesFrom_CantMoveIntoCheck(t *testing.T) {
     "   Q    " + // 6
     "        " + // 7
     "   K    ")  // 8
-  kingFrom := ParseCoord("e4")
+  //kingFrom := ParseCoord("e4")
   rookFrom := ParseCoord("e3")
-  rookCapture := ParseMove("e3e1")
-  rookCaptureEvent, _ := InterpretMove(rookCapture, game)
+  //rookCapture := ParseMove("e3e1")
+  //rookCaptureEvent, _ := InterpretMove(rookCapture, game)
 
-  kingMoves := LegalMovesFrom(kingFrom, game)
+  //kingMoves := LegalMovesFrom(kingFrom, game)
   rookMoves := LegalMovesFrom(rookFrom, game)
 
-  kingWant := []*Move{ParseMove("e4f5"), ParseMove("e4f3")}
+  //kingWant := []*Move{ParseMove("e4f5"), ParseMove("e4f3")}
   rookWant := []*Move{ParseMove("e3e2"), ParseMove("e3e1")}
-  checkInterpretMove(t, game, kingFrom, kingWant)
-  checkInterpretMove(t, game, rookFrom, rookWant)
+  //checkInterpretMove(t, game, kingFrom, kingWant)
+  //checkInterpretMove(t, game, rookFrom, rookWant)
+  /*
   checkEvent(t, game, rookCapture, rookCaptureEvent,
              &Event{[]*Move{ParseMove("e3e1")},
-                    &Captured{&Piece{'r', Black}, ParseCoord("e1")}})
+                    &Captured{&Piece{'r', Black}, ParseCoord("e1")}, nil})
   checkLegalMovesFrom(t, game, kingFrom, kingMoves, kingWant)
+  */
   checkLegalMovesFrom(t, game, rookFrom, rookMoves, rookWant)
+  checkGetPieces(t, game.board)
 }
+
+func TestLegalMovesFrom_Promo(t *testing.T) {
+  game := loadGame(
+  // abcdehfh
+    "    R   " + // 1
+    "        " + // 2
+    "    r   " + // 3
+    "    k   " + // 4
+    "        " + // 5
+    "   Q    " + // 6
+    "       p" + // 7
+    "   K    ")  // 8
+
+  want := []*Move{
+    ParseMove("h7h8q"),
+    ParseMove("h7h8b"),
+    ParseMove("h7h8n"),
+    ParseMove("h7h8r")}
+
+  checkInterpretMove(t, game, ParseCoord("h7"), want)
+}
+
+func TestUndoPromo(t *testing.T) {
+  game := loadGame(
+  // abcdehfh
+    "    R   " + // 1
+    "        " + // 2
+    "    r   " + // 3
+    "    k   " + // 4
+    "        " + // 5
+    "   Q    " + // 6
+    "       p" + // 7
+    "   K    ")  // 8
+
+  want := []*Move{
+    ParseMove("h7h8q"),
+    ParseMove("h7h8b"),
+    ParseMove("h7h8n"),
+    ParseMove("h7h8r")}
+
+  checkInterpretMove(t, game, ParseCoord("h7"), want)
+}
+
+// castle not allowed after moving

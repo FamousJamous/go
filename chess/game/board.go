@@ -13,14 +13,17 @@ type Board struct {
   rows *Rows
   whiteKingPos *Coord
   blackKingPos *Coord
-  whitePieces map[*Piece]*Coord
-  blackPieces map[*Piece]*Coord
+  whitePieces map[int]*Piece
+  blackPieces map[int]*Piece
+  whitePoints int
+  blackPoints int
 }
 
 type BoardView interface {
   Get(coord *Coord) *Piece
   StringKey() string
-  GetPieces(color Color) map[*Piece]*Coord
+  GetPieces(color Color) map[int]*Piece
+  GetPoints(color Color) int
 }
 
 // Returns kingPos, otherKingPos, the first kingPos will match the given color
@@ -31,11 +34,18 @@ func (board *Board) getKingPositions(color Color) (*Coord, *Coord) {
   return board.whiteKingPos, board.blackKingPos
 }
 
-func (board *Board) GetPieces(color Color) map[*Piece]*Coord {
+func (board *Board) GetPieces(color Color) map[int]*Piece {
   if color == Black {
     return board.blackPieces
   }
   return board.whitePieces
+}
+
+func (board *Board) GetPoints(color Color) int {
+  if color == Black {
+    return board.blackPoints
+  }
+  return board.whitePoints
 }
 
 func MakeBoard() *Board {
@@ -49,7 +59,7 @@ func MakeBoard() *Board {
 
 func EmptyBoard() *Board {
   return &Board{
-    &Rows{}, nil, nil, make(map[*Piece]*Coord), make(map[*Piece]*Coord)}
+    &Rows{}, nil, nil, make(map[int]*Piece), make(map[int]*Piece), 0, 0}
 }
 
 func (board *Board) Get(coord *Coord) *Piece {
@@ -63,41 +73,32 @@ func (board *Board) Set(coord *Coord, piece *Piece) {
   if !coord.InRange() {
     panic(fmt.Sprintf("board:\n%v\ncoord out of range %v", board, coord))
   }
-  // Assumes no one captures kings, and there's only one king per color.
-  if piece != nil && piece.name == 'k' {
-    if piece.color == Black {
-      board.blackKingPos = coord
-    } else {
-      board.whiteKingPos = coord
-    }
-  }
   if existing := board.rows[coord.row][coord.col]; existing != nil {
     if existing.color == Black {
-      delete(board.blackPieces, existing)
+      board.blackPoints -= piece.GetPoints()
+      delete(board.blackPieces, coord.toKey())
     } else {
-      delete(board.whitePieces, existing)
+      board.whitePoints -= piece.GetPoints()
+      delete(board.whitePieces, coord.toKey())
     }
   }
   if piece != nil {
     if piece.color == Black {
-      board.blackPieces[piece] = coord
+      board.blackPieces[coord.toKey()] = piece
+      board.blackPoints += piece.GetPoints()
+      if piece.name == 'k' {
+        board.blackKingPos = coord
+      }
     } else {
-      board.whitePieces[piece] = coord
+      board.whitePieces[coord.toKey()] = piece
+      board.whitePoints += piece.GetPoints()
+      if piece.name == 'k' {
+        board.whiteKingPos = coord
+      }
     }
   }
   board.rows[coord.row][coord.col] = piece
 }
-
-func (board *Board) MovePiece(move *Move) error {
-  piece := board.Get(move.from)
-  if piece == nil {
-    return &GameError{fmt.Sprint("No piece at ", move.from)}
-  }
-  board.Set(move.from, nil)
-  board.Set(move.to, piece)
-  return nil
-}
-
 
 func (board *Board) String() string {
   builder := &strings.Builder{}

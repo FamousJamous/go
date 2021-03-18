@@ -1,15 +1,15 @@
 package game
 
-import (
-  "reflect"
-)
-
 func moveEvent(move *Move) (*Event, bool) {
-  return &Event{[]*Move{move}, nil}, true
+  return &Event{[]*Move{move}, nil, nil}, true
+}
+
+func promoEvent(move *Move, promoteTo *Piece) (*Event, bool) {
+  return &Event{[]*Move{move}, nil, promoteTo}, true
 }
 
 func captureEvent(move* Move, piece *Piece) (*Event, bool) {
-  return &Event{[]*Move{move}, &Captured{piece, move.to}}, true
+  return &Event{[]*Move{move}, &Captured{piece, move.to}, nil}, true
 }
 
 func moveOrCaptureEvent(move* Move, piece *Piece) (*Event, bool) {
@@ -20,11 +20,11 @@ func moveOrCaptureEvent(move* Move, piece *Piece) (*Event, bool) {
 }
 
 func enPassantEvent(move *Move, piece *Piece, coord* Coord) (*Event, bool) {
-  return &Event{[]*Move{move}, &Captured{piece, coord}}, true
+  return &Event{[]*Move{move}, &Captured{piece, coord}, nil}, true
 }
 
 func castleEvent(kingMove *Move, rookMove *Move) (*Event, bool) {
-  return &Event{[]*Move{kingMove, rookMove}, nil}, true
+  return &Event{[]*Move{kingMove, rookMove}, nil, nil}, true
 }
 
 func badEvent() (*Event, bool) {
@@ -134,6 +134,31 @@ func interpretPawn(piece *Piece, move *Move, game *Game) (*Event, bool) {
   return badEvent()
 }
 
+// Assume move is legal in all ways except check.
+func checkPromo(piece *Piece, move *Move) bool {
+  if isPawnPromoRow(piece, move) != (move.promoteTo != 0) {
+    return false
+  }
+  switch move.promoteTo {
+    case 'q': return true
+    case 'b': return true
+    case 'n': return true
+    case 'r': return true
+    case 0 : return true
+    default: return false
+  }
+}
+
+func isPawnPromoRow(piece *Piece, move *Move) bool {
+  if piece.name != 'p' {
+    return false
+  }
+  if piece.color == Black {
+    return move.to.row == 0
+  }
+  return move.to.row == 7
+}
+
 func interpretKnight(piece *Piece, move *Move, game *Game) (*Event, bool) {
   rowDiff, colDiff := move.Diff()
   if (rowDiff + colDiff) != 3 || abs(rowDiff - colDiff) != 1 {
@@ -207,21 +232,16 @@ func interpretCastle(piece *Piece, move *Move, game *Game) (*Event, bool) {
 }
 
 func hasMoved(coord *Coord, game *Game) bool {
-  for _, event := range game.history.AllEvents() {
-    if reflect.DeepEqual(event.moves[0].from, coord) {
-      return true
-    }
-  }
-  return false
+  return game.history.HasMoved(coord)
 }
 
 func castleRookMove(kingTo *Coord) *Move {
   row := kingTo.row
   if kingTo.col == 2 {
-    return &Move{&Coord{row, 0}, &Coord{row, 3}}
+    return MakeMove(&Coord{row, 0}, &Coord{row, 3})
   }
   // kingTo.col == 6
-  return &Move{&Coord{row, 7}, &Coord{row, 5}}
+  return MakeMove(&Coord{row, 7}, &Coord{row, 5})
 }
 
 func interpretStraight(piece *Piece, move *Move, game *Game) (*Event, bool) {
@@ -273,8 +293,9 @@ func hasThreat(color Color, to *Coord, game *Game) bool {
   if to == nil {
     return false
   }
-  for piece, from := range game.board.GetPieces(color) {
-    if _, ok := interpretSimple(piece, &Move{from, to}, game); ok {
+  for from, piece := range game.board.GetPieces(color) {
+    if _, ok := interpretSimple(piece, MakeMove(keyToCoord(from), to), game);
+        ok {
       return true
     }
   }

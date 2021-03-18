@@ -1,24 +1,26 @@
 package game
 
-import "fmt"
-import "reflect"
-import "testing"
+import (
+  "fmt"
+  "reflect"
+  "testing"
+)
 
-func testGetPieces(t *testing.T, board *Board) {
-  gotBlack := board.getPieces(Black)
-  gotWhite := board.getPieces(White)
+func checkGetPieces(t *testing.T, board *Board) {
+  gotBlack := board.GetPieces(Black)
+  gotWhite := board.GetPieces(White)
 
-  wantBlack := make(map[*Piece]*Coord)
-  wantWhite := make(map[*Piece]*Coord)
+  wantBlack := make(map[int]*Piece)
+  wantWhite := make(map[int]*Piece)
   for row := 0; row < 8; row++ {
     for col := 0; col < 8; col++ {
       coord := &Coord{row, col}
       if piece := board.Get(coord);
           piece != nil {
         if piece.color == Black {
-          wantBlack[piece] = coord
+          wantBlack[coord.toKey()] = piece
         } else {
-          wantWhite[piece] = coord
+          wantWhite[coord.toKey()] = piece
         }
       }
     }
@@ -26,22 +28,24 @@ func testGetPieces(t *testing.T, board *Board) {
   if !reflect.DeepEqual(gotBlack, wantBlack) ||
       !reflect.DeepEqual(gotWhite, wantWhite){
     t.Errorf("board:\n%v\ngot black: %v\nwant black: %v\nblack diff: %v\n" +
-        " got white: %v\nwant white: %v\nwhite diff: %v",
+        "got white: %v\nwant white: %v\nwhite diff: %v",
         board, gotBlack, wantBlack, diffMaps(gotBlack, wantBlack),
         gotWhite, wantWhite, diffMaps(gotWhite, wantWhite))
   }
 }
 
-func diffMaps(lhs map[*Piece]*Coord, rhs map[*Piece]*Coord) string {
-  for piece, lhsCoord := range lhs {
-    if rhsCoord, ok := rhs[piece];
-        !ok || !reflect.DeepEqual(lhsCoord, rhsCoord) {
-      return fmt.Sprintf("mismatch - lhs %v, %v, rhs %v", piece, lhsCoord, rhsCoord)
+func diffMaps(got map[int]*Piece, want map[int]*Piece) string {
+  for coord, gotPiece := range got {
+    if wantPiece, ok := want[coord];
+        !ok || !reflect.DeepEqual(gotPiece, wantPiece) {
+      return fmt.Sprintf("mismatch - got %v, '%v', want '%v'",
+          keyToCoord(coord), gotPiece, wantPiece)
     }
   }
-  for piece, rhsCoord := range rhs {
-    if lhsCoord, ok := lhs[piece]; !ok {
-      return fmt.Sprintf("mismatch - rhs %v, %v, rhs %v", piece, rhsCoord, lhsCoord)
+  for coord, wantPiece := range want {
+    if gotPiece, ok := got[coord]; !ok || !reflect.DeepEqual(gotPiece, wantPiece) {
+      return fmt.Sprintf("mismatch - want %v, '%v', got '%v'",
+          keyToCoord(coord), wantPiece, gotPiece)
     }
   }
   return "no diff"
@@ -50,13 +54,14 @@ func diffMaps(lhs map[*Piece]*Coord, rhs map[*Piece]*Coord) string {
 func TestGetPieces(t *testing.T) {
   board := MakeBoard()
 
-  testGetPieces(t, board)
+  checkGetPieces(t, board)
 }
 
 func makeBoardMoves(board *Board, moveStrs []string) {
   for _, moveStr := range moveStrs {
-    if moveError := board.MovePiece(ParseMove(moveStr)); moveError != nil {
-      panic(moveError.Error())
+    move := ParseMove(moveStr)
+    if !move.apply(board) {
+      panic(fmt.Sprintf("%v\nfailed to apply move: %v", board, move))
     }
   }
 }
@@ -66,5 +71,39 @@ func TestGetPiecesAfterMoves(t *testing.T) {
   makeBoardMoves(
       board, []string{"e2e4", "g8f6", "f1c4", "f6g4", "g1f3", "g4e3"})
 
-  testGetPieces(t, board)
+  checkGetPieces(t, board)
+}
+
+func TestGetPiecesBug(t *testing.T) {
+  game := loadGame(
+    // abcdefgh
+    "        " + // 1
+    "        " + // 2
+    "  n     " + // 3
+    "   k    " + // 4
+    "   r    " + // 5
+    "   K    " + // 6
+    "  B     " + // 7
+    "        ")  // 8
+  game.GetState()
+
+  checkGetPieces(t, game.board)
+}
+
+func TestGetPiecesOtherBug(t *testing.T) {
+  game := loadGame(
+  // abcdehfh
+    "    R   " + // 1
+    "        " + // 2
+    "    r   " + // 3
+    "    k   " + // 4
+    "        " + // 5
+    "   Q    " + // 6
+    "        " + // 7
+    "   K    ")  // 8
+  LegalMovesFrom(ParseCoord("e4"), game)
+  LegalMovesFrom(ParseCoord("e3"), game)
+  InterpretMove(ParseMove("e3e1"), game)
+
+  checkGetPieces(t, game.board)
 }

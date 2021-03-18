@@ -4,10 +4,11 @@ import "strings"
 
 type History struct {
   events []*Event
+  from_to_count map[int]int
 }
 
 func MakeHistory() *History {
-  return &History{make([]*Event, 0, 30)}
+  return &History{make([]*Event, 0, 30), make(map[int]int)}
 }
 
 func (history *History) AllEvents() []*Event {
@@ -20,6 +21,9 @@ func (history *History) IsEmpty() bool {
 
 func (history *History) AddEvent(event *Event) {
   history.events = append(history.events, event)
+  for _, move := range event.moves {
+    history.from_to_count[move.from.toKey()]++
+  }
 }
 
 func (history *History) GetLastEvent() *Event {
@@ -29,11 +33,18 @@ func (history *History) GetLastEvent() *Event {
   return history.events[len(history.events) - 1]
 }
 
+func (history *History) HasMoved(from *Coord) bool {
+  return history.from_to_count[from.toKey()] > 0
+}
+
 func (history *History) UndoMove(board* Board) bool {
   // Get last event
   event := history.GetLastEvent()
   if event == nil {
     return false
+  }
+  for _, move := range event.moves {
+    history.from_to_count[move.from.toKey()]--
   }
   // Undo last event
   event.undo(board)

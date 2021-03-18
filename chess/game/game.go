@@ -27,7 +27,8 @@ func LoadGame(turn Color, board *Board, history *History) *Game {
 }
 
 func MakeGame() *Game {
-  game := &Game{White, MakeBoard(), MakeHistory(), make(map[string]int)}
+  game := &Game{
+    White, MakeBoard(), MakeHistory(), make(map[string]int)}
   game.boardCounts[game.board.StringKey()]++
   return game
 }
@@ -72,7 +73,10 @@ func ParseCoord(str string) *Coord {
 }
 
 func ParseMove(str string) *Move {
-  return &Move{ParseCoord(str), ParseCoord(str[2:])}
+  if len(str) == 5 {
+    return MakePromo(ParseCoord(str), ParseCoord(str[2:]), str[4])
+  }
+  return MakeMove(ParseCoord(str), ParseCoord(str[2:]))
 }
 
 type State int
@@ -109,10 +113,8 @@ func (state State) IsNotOver() bool {
 
 func (game *Game) GetAllMoves() []*Move {
   moves := make([]*Move, 0, 64)
-  for row := 0; row < 8; row++ {
-    for col := 0; col < 8; col++ {
-      moves = append(moves, LegalMovesFrom(&Coord{row, col}, game)...)
-    }
+  for fromKey, _ := range game.board.GetPieces(game.turn) {
+    moves = append(moves, LegalMovesFrom(keyToCoord(fromKey), game)...)
   }
   return moves
 }
@@ -153,26 +155,21 @@ func colorInCheck(color Color) State {
 func insufficientMaterial(color Color, game *Game) bool {
   oneKnight := false
   oneBishop := false
-  for row := 0; row < 8; row++ {
-    for col := 0; col < 8; col++ {
-      if piece := game.board.Get(&Coord{row, col}); piece != nil &&
-          piece.color == color {
-        switch piece.name {
-          case 'n':
-            if oneKnight {
-              return false
-            }
-            oneKnight = true
-          case 'b':
-            if oneBishop {
-              return false
-            }
-            oneBishop = true
-          case 'k':
-          default:
-            return false
+  for _, piece := range game.board.GetPieces(color) {
+    switch piece.name {
+      case 'n':
+        if oneKnight {
+          return false
         }
-      }
+        oneKnight = true
+      case 'b':
+        if oneBishop {
+          return false
+        }
+        oneBishop = true
+      case 'k':
+      default:
+        return false
     }
   }
   return !(oneKnight && oneBishop)

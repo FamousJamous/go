@@ -1,10 +1,13 @@
 package game
 
-import "testing"
+import (
+  "fmt"
+  "testing"
+)
 
 func TestMakeMove_KingSideCastle(t *testing.T) {
   game := MakeGame()
-  makeMoves(game, []string{"e2e4", "e7e5", "f1c4", "d7d5", "g1f3", "c7c5"})
+  MakeMoves(game, []string{"e2e4", "e7e5", "f1c4", "d7d5", "g1f3", "c7c5"})
 
   game.MakeMove(ParseMove("e1g1"))
 
@@ -14,7 +17,7 @@ func TestMakeMove_KingSideCastle(t *testing.T) {
 
 func TestMakeMove_QueenSideCastle(t *testing.T) {
   game := MakeGame()
-  makeMoves(
+  MakeMoves(
     game,
     []string{"d2d4", "e7e5", "d1d3", "d7d5", "c1f4", "c7c5", "b1a3", "b7b5"})
 
@@ -26,7 +29,7 @@ func TestMakeMove_QueenSideCastle(t *testing.T) {
 
 func TestUndoMove_KingSideCastle(t *testing.T) {
   game := MakeGame()
-  makeMoves(
+  MakeMoves(
     game, []string{"e2e4", "e7e5", "f1c4", "d7d5", "g1f3", "c7c5", "e1g1"})
 
   game.UndoMove()
@@ -37,7 +40,7 @@ func TestUndoMove_KingSideCastle(t *testing.T) {
 
 func TestUndoMove_QueenSideCastle(t *testing.T) {
   game := MakeGame()
-  makeMoves(
+  MakeMoves(
     game,
     []string{
       "d2d4", "e7e5", "d1d3", "d7d5", "c1f4", "c7c5", "b1a3", "b7b5", "e1c1"})
@@ -50,7 +53,7 @@ func TestUndoMove_QueenSideCastle(t *testing.T) {
 
 func TestUndoMove_EnPassant(t *testing.T) {
   game := MakeGame()
-  makeMoves(game, []string{"e2e4", "h7h5", "e4e5", "d7d5", "e5d6"})
+  MakeMoves(game, []string{"e2e4", "h7h5", "e4e5", "d7d5", "e5d6"})
   checkPiece(t, game, "d6", &Piece{'p', White})
   checkPiece(t, game, "d5", nil)
 
@@ -153,7 +156,7 @@ func TestGetState_ComboDraw(t *testing.T) {
 
 func TestGetState_ThreeFoldRepetition(t *testing.T) {
   game := MakeGame()
-  makeMoves(
+  MakeMoves(
     game,
     []string{"b1c3", "b8c6", "c3b1", "c6b8", "b1c3", "b8c6", "c3b1", "c6b8"})
 
@@ -187,12 +190,14 @@ func TestGetState_BlackInCheck(t *testing.T) {
     "  B     " + // 7
     "        ")  // 8
 
+  fmt.Printf("num white pieces: %v\n", len(game.board.GetPieces(White)))
+
   checkState(t, game, BlackInCheck)
 }
 
 func TestGetState_GameCrashed(t *testing.T) {
   game := MakeGame()
-  makeMoves(
+  MakeMoves(
       game,
       []string{"b1c3", "a7a6", "c3d5", "a6a5", "a1b1", "a5a4", "b1a1", "a4a3",
       "b2a3", "b7b6", "a1b1", "c7c6", "d5b6", "a8a7", "b6c8", "a7a8", "c8e7",

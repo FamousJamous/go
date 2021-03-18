@@ -7,6 +7,14 @@ type Coord struct {
   col int
 }
 
+func keyToCoord(key int) *Coord {
+  return &Coord{key / 8, key % 8}
+}
+
+func (coord *Coord) toKey() int {
+  return coord.row * 8 + coord.col
+}
+
 func MakeCoord(row int, col int) *Coord {
   return &Coord{row, col}
 }

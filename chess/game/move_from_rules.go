@@ -164,12 +164,12 @@ func castleKingMovesFrom(from *Coord, game *Game) []*Move {
   piece := game.board.Get(from)
   moves := make([]*Move, 0, 2)
   // Left 2
-  left := &Move{from, &Coord{from.row, from.col - 2}}
+  left := MakeMove(from, &Coord{from.row, from.col - 2})
   if _, ok := interpretCastle(piece, left, game); ok {
     moves = append(moves, left)
   }
   // Right 2
-  right := &Move{from, &Coord{from.row, from.col + 2}}
+  right := MakeMove(from, &Coord{from.row, from.col + 2})
   if _, ok := interpretCastle(piece, right, game); ok {
     moves = append(moves, right)
   }
@@ -228,12 +228,12 @@ func appendMovesInRange(
     if captured != nil {
       // Capture
       if captured.color != piece.color {
-        moves = append(moves, &Move{from, to})
+        moves = append(moves, MakeMove(from, to))
       }
       // Ran into a piece
       break
     }
-    moves = append(moves, &Move{from, to})
+    moves = append(moves, MakeMove(from, to))
   }
   return moves
 }
@@ -242,14 +242,14 @@ func appendIfEmptyOrCapture(from *Coord, to *Coord, game *Game, moves []*Move) [
   if captured := game.board.Get(to); captured != nil {
     // Captured
     if game.board.Get(from).color != captured.color {
-      return append(moves, &Move{from, to})
+      return append(moves, MakeMove(from, to))
     }
     // Can't capture own piece
     return moves
   }
   if to.InRange() {
     // Move to empty space
-    return append(moves, &Move{from, to})
+    return append(moves, MakeMove(from, to))
   }
   return moves
 }
@@ -270,14 +270,14 @@ func appendIfEnPassant(from *Coord, game *Game, moves []*Move) []*Move {
   pawn := game.board.Get(from)
   to := &Coord{getPawnForwardRow(pawn.color, from, 1), lastTo.col}
   if game.board.Get(to) == nil {
-    return append(moves, &Move{from, to})
+    return append(moves, MakeMove(from, to))
   }
   return moves
 }
 
 func appendIfEmpty(from *Coord, to *Coord, game *Game, moves []*Move) []*Move {
   if game.board.Get(to) == nil {
-    return append(moves, &Move{from, to})
+    return append(moves, MakeMove(from, to))
   }
   return moves
 }
@@ -289,7 +289,7 @@ func appendIfCapture(
   if captured == nil || captured.color == piece.color {
     return moves
   }
-  return append(moves, &Move{from, to})
+  return append(moves, MakeMove(from, to))
 }
 
 func getPawnDiagonal(color Color, from *Coord, colShift int) *Coord {
@@ -325,8 +325,7 @@ func isCastle(move *Move, board *Board) bool {
 func getRookCastleMove(move *Move) *Move {
   row := move.from.row
   if move.to.col == 6 {
-    return &Move{&Coord{row, 7}, &Coord{row, 5}}
-  } else {
-    return &Move{&Coord{row, 0}, &Coord{row, 3}}
+    return MakeMove(&Coord{row, 7}, &Coord{row, 5})
   }
+  return MakeMove(&Coord{row, 0}, &Coord{row, 3})
 }
