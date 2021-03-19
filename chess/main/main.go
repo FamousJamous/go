@@ -1,92 +1,11 @@
 package main
 
 import (
+  "ai"
   "fmt"
   "jsdu/chess/game"
-  "minimax"
+  "time"
 )
-
-type AiGame struct {
-  chessGame *game.Game
-}
-
-func (aiGame *AiGame) String() string {
-  return aiGame.chessGame.String()
-}
-
-func (aiGame *AiGame) GetAllMoves() []minimax.MiniMaxMove {
-  moves := make([]minimax.MiniMaxMove, 0, 32)
-  for row := 0; row < 8; row++ {
-    for col := 0; col < 8; col++ {
-      chessMoves := game.LegalMovesFrom(
-          game.MakeCoord(row, col), aiGame.chessGame)
-      for _, move := range chessMoves {
-        moves = append(moves, move)
-      }
-    }
-  }
-  return moves
-}
-
-func (aiGame *AiGame) GetScore() minimax.Score {
-  score := 0
-  for row := 0; row < 8; row++ {
-    for col := 0; col < 8; col++ {
-      score += getPieceScore(game.MakeCoord(row, col), aiGame.chessGame)
-    }
-  }
-  return minimax.Score(score)
-}
-
-func getPieceScore(from *game.Coord, chessGame *game.Game) int {
-  piece := chessGame.GetBoard().Get(from)
-  if piece == nil {
-    return 0
-  }
-  score := getPieceScoreColorless(piece)
-      //len(game.LegalMovesFrom(from, chessGame))
-  if piece.GetColor() == game.Black {
-    return -score
-  }
-  return score
-}
-
-func getPieceScoreColorless(piece *game.Piece) int {
-  switch piece.GetName() {
-    case 'p': return 1
-    case 'r': return 5
-    case 'n': return 3
-    case 'b': return 3
-    case 'q': return 9
-    case 'k': return 100
-    default:
-      panic(fmt.Sprintf("Unexpected piece: %c", piece.GetName()))
-      return 0
-  }
-}
-
-func (aiGame *AiGame) MakeMove(move minimax.MiniMaxMove) error {
-  return aiGame.chessGame.MakeMove(move.(*game.Move).GetFromTo())
-}
-
-func (aiGame *AiGame) UndoMove() {
-  aiGame.chessGame.UndoMove()
-}
-
-type AiPlayer struct {
-  aiGame *AiGame
-  color game.Color
-}
-
-func MakeAiPlayer(color game.Color, chessGame *game.Game) game.Player {
-  return &AiPlayer{&AiGame{chessGame}, color}
-}
-
-func (player *AiPlayer) GetMove() *game.FromTo {
-  move, _ := minimax.MiniMax(player.aiGame, player.color == game.Black, 1, 4)
-  fmt.Printf("chose move: %v\n", move)
-  return move.(*game.Move).GetFromTo()
-}
 
 type PlayError struct {
   message string
@@ -105,7 +24,7 @@ func MakeHumanPlayer(color game.Color, chessGame *game.Game) game.Player {
   return &HumanPlayer{chessGame, color}
 }
 
-func (player *HumanPlayer) GetMove() *game.FromTo {
+func (player *HumanPlayer) GetMove() *game.Move {
   fmt.Println(player.chessGame)
   fmt.Println("Enter move (<a-h><1-8><a-h><1-8>): ")
   var line string
@@ -114,12 +33,12 @@ func (player *HumanPlayer) GetMove() *game.FromTo {
     fmt.Println("Invalid move")
     return player.GetMove()
   }
-  fromTo := game.ParseFromTo(line)
-  if !fromTo.InRange() {
+  move := game.ParseMove(line)
+  if !move.InRange() {
     fmt.Println("Invalid move")
     return player.GetMove()
   }
-  return fromTo
+  return move
 }
 
 type PlayerManager struct {
@@ -138,15 +57,23 @@ func (manager *PlayerManager) GetCurrentPlayer() game.Player {
 func main() {
   chessGame := game.MakeGame()
   manager := &PlayerManager{
-      MakeAiPlayer(game.White, chessGame),
-      MakeAiPlayer(game.Black, chessGame),
+      ai.MakeAiPlayer(game.White, chessGame, 5),
+      ai.MakeAiPlayer(game.Black, chessGame, 5),
       chessGame}
-  var state game.State = game.NotOver
-  for state = chessGame.GetState(); state == game.NotOver; {
-    fromTo := manager.GetCurrentPlayer().GetMove()
-    if ok := chessGame.MakeMove(fromTo); ok != nil {
-      fmt.Println(ok.Error())
+  lastTime := time.Now()
+  for state := chessGame.GetState(); !state.IsOver();
+      state = chessGame.GetState() {
+    move := manager.GetCurrentPlayer().GetMove()
+    if ok := chessGame.MakeMove(move); !ok {
+      fmt.Printf("failed to make move: %v\n", move)
     }
     fmt.Println(chessGame)
+    currentTime := time.Now()
+    fmt.Printf(
+      "white points: %v, black points %v, time since last event: %v\n",
+      chessGame.GetBoard().GetPoints(game.White),
+      chessGame.GetBoard().GetPoints(game.Black),
+      currentTime.Sub(lastTime))
+    lastTime = currentTime
   }
 }
