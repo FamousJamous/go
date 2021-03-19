@@ -44,32 +44,6 @@ func (aiGame *AiGame) GetScore() minimax.Score {
       board.GetPoints(game.White) - board.GetPoints(game.Black))
 }
 
-func getPieceScore(from *game.Coord, chessGame *game.Game) int {
-  piece := chessGame.GetBoard().Get(from)
-  if piece == nil {
-    return 0
-  }
-  score := getPieceScoreColorless(piece)
-  if piece.GetColor() == game.Black {
-    return -score
-  }
-  return score
-}
-
-func getPieceScoreColorless(piece *game.Piece) int {
-  switch piece.GetName() {
-    case 'p': return 10
-    case 'r': return 50
-    case 'n': return 30
-    case 'b': return 30
-    case 'q': return 90
-    case 'k': return 0
-    default:
-      panic(fmt.Sprintf("Unexpected piece: %c", piece.GetName()))
-      return 0
-  }
-}
-
 func (aiGame *AiGame) MakeMove(move minimax.MiniMaxMove) {
   ok := aiGame.chessGame.MakeMove(move.(*game.Move))
   if !ok {
@@ -90,14 +64,19 @@ func (aiGame *AiGame) StringKey() string {
 type AiPlayer struct {
   aiGame *AiGame
   color game.Color
+  depth int
 }
 
-func MakeAiPlayer(color game.Color, chessGame *game.Game) game.Player {
-  return &AiPlayer{&AiGame{chessGame}, color}
+func MakeAiPlayer(
+  color game.Color, chessGame *game.Game, depth int,
+) game.Player {
+  return &AiPlayer{&AiGame{chessGame}, color, depth}
 }
 
 func (player *AiPlayer) GetMove() *game.Move {
-  move, _ := minimax.MiniMax(player.aiGame, player.color == game.Black, 1, 4)
+  move, _ := minimax.MiniMax(
+    player.aiGame, player.color == game.Black, 1, player.depth)
+  fmt.Printf("game score: %v\n", player.aiGame.GetScore())
   fmt.Printf("chose move: %v\n", move)
   return move.(*game.Move)
 }
