@@ -46,3 +46,13 @@ func (piece *Piece) String() string {
   }
   return fmt.Sprintf("%c", char)
 }
+
+func (piece *Piece) toByte() byte {
+  if piece == nil {
+    return ' '
+  }
+  if piece.color == Black {
+    return piece.name - ('a' - 'A')
+  }
+  return piece.name
+}

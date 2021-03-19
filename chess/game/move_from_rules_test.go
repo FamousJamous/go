@@ -392,46 +392,90 @@ func TestLegalMovesFrom_CantMoveIntoCheck(t *testing.T) {
   checkGetPieces(t, game.board)
 }
 
-func TestLegalMovesFrom_Promo(t *testing.T) {
+func TestLegalMovesFrom_CantCastleAfterMovingKing(t *testing.T) {
   game := loadGame(
   // abcdehfh
-    "    R   " + // 1
-    "        " + // 2
-    "    r   " + // 3
-    "    k   " + // 4
+    "rnbq   r" + // 1
+    "ppppkppp" + // 2
+    "     n  " + // 3
+    "  b p   " + // 4
     "        " + // 5
-    "   Q    " + // 6
-    "       p" + // 7
-    "   K    ")  // 8
+    "        " + // 6
+    "PPPPPPPP" + // 7
+    "RNBQKBNR")  // 8
+  MakeMoves(game, []string{"e2e1", "e7e5"})
+
+  from := ParseCoord("e1")
+
+  moves := LegalMovesFrom(from, game)
+
+  want := []*Move{ParseMove("e1e2"), ParseMove("e1f1")}
+  checkLegalMovesFrom(t, game, from, moves, want)
+  checkInterpretMove(t, game, from, want)
+}
+
+func TestMakeMove_Promo(t *testing.T) {
+  game := loadGame(
+  // abcdefgh
+    "    k   " + // 1
+    "        " + // 2
+    "        " + // 3
+    "        " + // 4
+    "        " + // 5
+    "        " + // 6
+    " p      " + // 7
+    "    K   ")  // 8
+  from := ParseCoord("b7")
+
+  got := LegalMovesFrom(from, game)
 
   want := []*Move{
-    ParseMove("h7h8q"),
-    ParseMove("h7h8b"),
-    ParseMove("h7h8n"),
-    ParseMove("h7h8r")}
-
+    ParseMove("b7b8q"), ParseMove("b7b8b"), ParseMove("b7b8n"),
+    ParseMove("b7b8r")}
+  checkLegalMovesFrom(t, game, from, got, want)
   checkInterpretMove(t, game, ParseCoord("h7"), want)
 }
 
-func TestUndoPromo(t *testing.T) {
+func TestMakeMove_UndoPromo(t *testing.T) {
   game := loadGame(
-  // abcdehfh
-    "    R   " + // 1
+  // abcdefgh
+    "    k   " + // 1
     "        " + // 2
-    "    r   " + // 3
-    "    k   " + // 4
+    "        " + // 3
+    "        " + // 4
     "        " + // 5
-    "   Q    " + // 6
-    "       p" + // 7
-    "   K    ")  // 8
+    "        " + // 6
+    " p      " + // 7
+    "    K   ")  // 8
+  game.MakeMove(ParseMove("b7b8q"))
 
-  want := []*Move{
-    ParseMove("h7h8q"),
-    ParseMove("h7h8b"),
-    ParseMove("h7h8n"),
-    ParseMove("h7h8r")}
+  checkPiece(t, game, "b7", nil)
+  checkPiece(t, game, "b8", &Piece{'q', White})
 
-  checkInterpretMove(t, game, ParseCoord("h7"), want)
+  game.UndoMove()
+
+  checkPiece(t, game, "b7", &Piece{'p', White})
+  checkPiece(t, game, "b8", nil)
 }
 
-// castle not allowed after moving
+func TestMakeMove_UndoPromoCapture(t *testing.T) {
+  game := loadGame(
+  // abcdefgh
+    "    k   " + // 1
+    "        " + // 2
+    "        " + // 3
+    "        " + // 4
+    "        " + // 5
+    "        " + // 6
+    " p      " + // 7
+    "R   K   ")  // 8
+  game.MakeMove(ParseMove("b7a8q"))
+
+  checkPiece(t, game, "b7", nil)
+  checkPiece(t, game, "a8", &Piece{'q', White})
+
+  game.UndoMove()
+
+  checkPiece(t, game, "b7", &Piece{'p', White})
+  checkPiece(t, game, "a8", &Piece{'r', Black})
+}

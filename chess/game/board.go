@@ -17,6 +17,7 @@ type Board struct {
   blackPieces map[int]*Piece
   whitePoints int
   blackPoints int
+  stringKey []byte
 }
 
 type BoardView interface {
@@ -58,8 +59,13 @@ func MakeBoard() *Board {
 }
 
 func EmptyBoard() *Board {
-  return &Board{
-    &Rows{}, nil, nil, make(map[int]*Piece), make(map[int]*Piece), 0, 0}
+  board := &Board{
+    &Rows{}, nil, nil, make(map[int]*Piece), make(map[int]*Piece), 0, 0,
+    make([]byte, 64)}
+  for i := 0; i < 64; i++ {
+    board.stringKey[i] = ' '
+  }
+  return board
 }
 
 func (board *Board) Get(coord *Coord) *Piece {
@@ -75,10 +81,10 @@ func (board *Board) Set(coord *Coord, piece *Piece) {
   }
   if existing := board.rows[coord.row][coord.col]; existing != nil {
     if existing.color == Black {
-      board.blackPoints -= piece.GetPoints()
+      board.blackPoints -= existing.GetPoints()
       delete(board.blackPieces, coord.toKey())
     } else {
-      board.whitePoints -= piece.GetPoints()
+      board.whitePoints -= existing.GetPoints()
       delete(board.whitePieces, coord.toKey())
     }
   }
@@ -97,6 +103,7 @@ func (board *Board) Set(coord *Coord, piece *Piece) {
       }
     }
   }
+  board.stringKey[coord.toArrayIndex()] = piece.toByte()
   board.rows[coord.row][coord.col] = piece
 }
 
@@ -156,11 +163,5 @@ func printRow(row int, board *Board, builder *strings.Builder) {
 }
 
 func (board *Board) StringKey() string {
-  builder := &strings.Builder{}
-  for row := 0; row < 8; row++ {
-    for col := 0; col < 8; col++ {
-      builder.WriteString(board.Get(&Coord{row, col}).String())
-    }
-  }
-  return builder.String()
+  return string(board.stringKey[:])
 }

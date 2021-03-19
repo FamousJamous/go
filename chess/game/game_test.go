@@ -1,7 +1,8 @@
 package game
 
 import (
-  "fmt"
+  //"fmt"
+  //"math/rand"
   "testing"
 )
 
@@ -190,8 +191,6 @@ func TestGetState_BlackInCheck(t *testing.T) {
     "  B     " + // 7
     "        ")  // 8
 
-  fmt.Printf("num white pieces: %v\n", len(game.board.GetPieces(White)))
-
   checkState(t, game, BlackInCheck)
 }
 
@@ -260,3 +259,18 @@ func BenchmarkGetAllMoves(b *testing.B) {
     game.GetAllMoves()
   }
 }
+
+/*
+func TestRandomMoves(t *testing.T) {
+  game := MakeGame()
+
+  // Try random moves to see if we hit a bad state.
+  for state := game.GetState(); !state.IsOver(); state = game.GetState() {
+    moves := game.GetAllMoves()
+    move := moves[rand.Intn(len(moves))]
+    if !game.MakeMove(move) {
+      panic(fmt.Sprintf("game:\n%v\nmove: %v", game, move))
+    }
+  }
+}
+*/

@@ -102,13 +102,13 @@ func (state State) String() string {
   panic(fmt.Sprintf("Unexpected state %d", state))
 }
 
-func (state State) IsNotOver() bool {
+func (state State) IsOver() bool {
   switch (state) {
-    case BlackWins: return false
-    case WhiteWins: return false
-    case Draw: return false
+    case BlackWins: return true
+    case WhiteWins: return true
+    case Draw: return true
   }
-  return true
+  return false
 }
 
 func (game *Game) GetAllMoves() []*Move {
@@ -119,6 +119,15 @@ func (game *Game) GetAllMoves() []*Move {
   return moves
 }
 
+func noLegalMoves(game *Game) bool {
+  for fromKey, _ := range game.board.GetPieces(game.turn) {
+    if len(LegalMovesFrom(keyToCoord(fromKey), game)) > 0 {
+      return false
+    }
+  }
+  return true
+}
+
 func (game *Game) GetState() State {
   if insufficientMaterial(White, game) && insufficientMaterial(Black, game) {
     return Draw
@@ -126,9 +135,8 @@ func (game *Game) GetState() State {
   if game.boardCounts[game.board.StringKey()] > 2 {
     return Draw
   }
-  moves := game.GetAllMoves()
   kingInCheck, otherKingInCheck := identifyChecks(game)
-  if len(moves) == 0 {
+  if noLegalMoves(game) {
     if kingInCheck {
       if game.turn == White {
         return BlackWins

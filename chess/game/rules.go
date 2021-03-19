@@ -4,12 +4,17 @@ func moveEvent(move *Move) (*Event, bool) {
   return &Event{[]*Move{move}, nil, nil}, true
 }
 
-func promoEvent(move *Move, promoteTo *Piece) (*Event, bool) {
-  return &Event{[]*Move{move}, nil, promoteTo}, true
+func promoEvent(event *Event, pawn *Piece) (*Event, bool) {
+  move := event.moves[0]
+  if !validPromoteTo(move) {
+    return badEvent()
+  }
+  event.promoteTo = &Piece{move.promoteTo, pawn.color}
+  return event, true
 }
 
-func captureEvent(move* Move, piece *Piece) (*Event, bool) {
-  return &Event{[]*Move{move}, &Captured{piece, move.to}, nil}, true
+func captureEvent(move* Move, capturedPiece *Piece) (*Event, bool) {
+  return &Event{[]*Move{move}, &Captured{capturedPiece, move.to}, nil}, true
 }
 
 func moveOrCaptureEvent(move* Move, piece *Piece) (*Event, bool) {
@@ -43,10 +48,16 @@ func InterpretMove(move *Move, game *Game) (*Event, bool) {
   if !ok {
     return badEvent()
   }
+  if piece.name == 'p' && isPawnPromoRow(piece, move.to) {
+    event, ok = promoEvent(event, piece)
+    if !ok {
+      return badEvent()
+    }
+  }
   return checkForCheck(event, game)
 }
 
-// Doesn't check for castle or check or player turn.
+// Doesn't check for castle, check, player turn, or promo.
 func interpretSimple(piece *Piece, move *Move, game *Game) (*Event, bool) {
   switch piece.name {
     case 'p': return interpretPawn(piece, move, game)
@@ -100,17 +111,19 @@ func interpretPawn(piece *Piece, move *Move, game *Game) (*Event, bool) {
   }
   // 1 forward
   if colDiff == 0 {
-    if game.board.Get(move.to) == nil {
-      return moveEvent(move)
+    if game.board.Get(move.to) != nil {
+      return badEvent()
     }
-    return badEvent()
+    // Normal move
+    return moveEvent(move)
   }
+  // capture
   if colDiff != 1 {
     return badEvent()
   }
-  // capture
   toPiece := game.board.Get(move.to)
   if toPiece != nil && toPiece.color != piece.color {
+    // Capture
     return captureEvent(move, toPiece)
   }
   // en passant
@@ -135,28 +148,22 @@ func interpretPawn(piece *Piece, move *Move, game *Game) (*Event, bool) {
 }
 
 // Assume move is legal in all ways except check.
-func checkPromo(piece *Piece, move *Move) bool {
-  if isPawnPromoRow(piece, move) != (move.promoteTo != 0) {
-    return false
-  }
+func validPromoteTo(move *Move) bool {
   switch move.promoteTo {
     case 'q': return true
     case 'b': return true
     case 'n': return true
     case 'r': return true
-    case 0 : return true
     default: return false
   }
 }
 
-func isPawnPromoRow(piece *Piece, move *Move) bool {
-  if piece.name != 'p' {
-    return false
+// Assumes pawn is a pawn
+func isPawnPromoRow(pawn *Piece, coord *Coord) bool {
+  if pawn.color == Black {
+    return coord.row == 0
   }
-  if piece.color == Black {
-    return move.to.row == 0
-  }
-  return move.to.row == 7
+  return coord.row == 7
 }
 
 func interpretKnight(piece *Piece, move *Move, game *Game) (*Event, bool) {
@@ -222,13 +229,19 @@ func interpretCastle(piece *Piece, move *Move, game *Game) (*Event, bool) {
     return badEvent()
   }
   rookMove := castleRookMove(move.to)
-  if !emptyBetween(move.from, rookMove.from, game) ||
+  if !hasRook(rookMove.from, piece.color, game) ||
+      !emptyBetween(move.from, rookMove.from, game) ||
       hasMoved(move.from, game) || hasMoved(rookMove.from, game) ||
       hasThreatsBetween(move.from, rookMove.from, game) ||
       hasThreat(piece.color.Other(), move.from, game) {
     return badEvent()
   }
   return castleEvent(move, rookMove)
+}
+
+func hasRook(coord *Coord, color Color, game *Game) bool {
+  piece := game.board.Get(coord)
+  return piece != nil && piece.name == 'r' && piece.color == color
 }
 
 func hasMoved(coord *Coord, game *Game) bool {

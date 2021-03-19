@@ -2,6 +2,7 @@ package game
 
 import (
   "fmt"
+  //"math/rand"
   "reflect"
   "testing"
 )
@@ -107,3 +108,56 @@ func TestGetPiecesOtherBug(t *testing.T) {
 
   checkGetPieces(t, game.board)
 }
+
+func TestGetPoints(t *testing.T) {
+  board := MakeBoard()
+
+  checkGetPoints(t, board)
+}
+
+func TestGetPoints_AfterMoves(t *testing.T) {
+  game := loadGame(
+  // abcdehfh
+    "    R   " + // 1
+    "        " + // 2
+    "    r   " + // 3
+    "    k   " + // 4
+    "        " + // 5
+    "   Q    " + // 6
+    "        " + // 7
+    "   K    ")  // 8
+
+  checkGetPoints(t, game.board)
+}
+
+func checkGetPointsColor(t *testing.T, board *Board, color Color) {
+  got := board.GetPoints(color)
+
+  want := 0
+  for _, piece := range board.GetPieces(color) {
+    want += piece.GetPoints()
+  }
+  if want != got {
+    t.Errorf("board:\n%v\ngot: %v\nwant: %v", board, got, want)
+  }
+}
+
+func checkGetPoints(t *testing.T, board *Board) {
+  checkGetPointsColor(t, board, Black)
+  checkGetPointsColor(t, board, White)
+}
+
+/*
+func TestGetPoints_RandomMovesAndUndo(t *testing.T) {
+  game := MakeGame()
+
+  for i := 0; i < 20; i++ {
+    moves := game.GetAllMoves()
+    move := moves[rand.Intn(len(moves))]
+    if !game.MakeMove(move) {
+      panic(fmt.Sprintf("game:\n%v\nmove: %v", game, move))
+    }
+    checkGetPoints(t, game.board)
+  }
+}
+*/

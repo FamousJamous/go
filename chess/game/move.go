@@ -1,6 +1,9 @@
 package game
 
-import "fmt"
+import (
+  "fmt"
+  "strings"
+)
 
 type Move struct {
   from *Coord
@@ -13,7 +16,7 @@ type Move struct {
 func (move *Move) apply(board *Board) bool {
   piece := board.Get(move.from)
   if piece == nil {
-    return false
+    panic(fmt.Sprintf("%v\nno piece at %v in apply move", board, move.from))
   }
   board.Set(move.from, nil)
   if move.promoteTo == 0 {
@@ -27,7 +30,7 @@ func (move *Move) apply(board *Board) bool {
 func (move *Move) undo(board *Board) bool {
   piece := board.Get(move.to)
   if piece == nil {
-    panic(fmt.Sprintf("no piece at to %v in undo move", move.to))
+    panic(fmt.Sprintf("%v\nno piece at to %v in undo move", board, move.to))
   }
   if move.promoteTo == 0 {
     board.Set(move.from, piece)
@@ -57,7 +60,13 @@ func (move *Move) InRange() bool {
 }
 
 func (move *Move) String() string {
-  return fmt.Sprintf("%v%v", move.from, move.to)
+  builder := &strings.Builder{}
+  builder.WriteString(fmt.Sprintf("{%v%v", move.from, move.to))
+  if move.promoteTo != 0 {
+    builder.WriteString(fmt.Sprintf(" %c", move.promoteTo))
+  }
+  builder.WriteByte('}')
+  return builder.String()
 }
 
 func (move *Move) Reverse() *Move {
