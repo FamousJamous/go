@@ -63,19 +63,18 @@ func (aiGame *AiGame) StringKey() string {
 
 type AiPlayer struct {
   aiGame *AiGame
-  color game.Color
-  depth int
+  state *minimax.MiniMaxState
 }
 
 func MakeAiPlayer(
   color game.Color, chessGame *game.Game, depth int,
 ) game.Player {
-  return &AiPlayer{&AiGame{chessGame}, color, depth}
+  aiGame := &AiGame{chessGame}
+  return &AiPlayer{aiGame, minimax.MakeState(aiGame, color == game.Black, depth)}
 }
 
 func (player *AiPlayer) GetMove() *game.Move {
-  move, _ := minimax.MiniMax(
-    player.aiGame, player.color == game.Black, 1, player.depth)
+  move := player.state.GetMove()
   fmt.Printf("game score: %v\n", player.aiGame.GetScore())
   fmt.Printf("chose move: %v\n", move)
   return move.(*game.Move)
