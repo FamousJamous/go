@@ -113,6 +113,16 @@ func printLine(builder *strings.Builder) {
   builder.WriteString("+\n");
 }
 
+func (board *Board) StringKey() string {
+  builder := &strings.Builder{}
+  for row := 0; row < 3; row++ {
+    for col := 0; col < 3; col++ {
+      builder.WriteString(board.Get(row, col).String())
+    }
+  }
+  return builder.String()
+}
+
 type State int
 
 const (
@@ -264,17 +274,15 @@ func (player* HumanPlayer) GetMove() (*Move, error) {
 }
 
 type AiPlayer struct {
-  minimize bool
-  aiGame *AiGame
+  state *minimax.MiniMaxState
 }
 
 func MakeAiPlayer(color Color, game *Game) *AiPlayer {
-  return &AiPlayer{color == kO, &AiGame{game, nil}}
+  return &AiPlayer{minimax.MakeState(&AiGame{game}, color == kO, 9)}
 }
 
 func (player *AiPlayer) GetMove() (*Move, error) {
-  move, _ := minimax.MiniMax(player.aiGame, player.minimize, 1, 9)
-  return move.(*Move), nil
+  return player.state.GetMove().(*Move), nil
 }
 
 type AiGame struct {
@@ -283,6 +291,10 @@ type AiGame struct {
 
 func (aiGame *AiGame) String() string {
   return aiGame.game.String()
+}
+
+func (aiGame *AiGame) StringKey() string {
+  return aiGame.game.GetBoard().StringKey()
 }
 
 func (aiGame *AiGame) GetAllMoves() []minimax.MiniMaxMove {
@@ -309,8 +321,7 @@ func (aiGame *AiGame) GetScore() minimax.Score {
 
 func (aiGame *AiGame) MakeMove(aiMove minimax.MiniMaxMove) {
   move := aiMove.(*Move)
-  ok := aiGame.game.MakeMove(move)
-  if ok != nil {
+  if ok := aiGame.game.MakeMove(move); ok != nil {
     panic(ok.Error())
   }
 }
